@@ -45,9 +45,3 @@
 
 (defmacro ftp-put (lfile file)
   (concat "put " lfile " " file))
-
-
-;(with-ftp ("e018462" "test1.aoins.com" nil)
-;	    (ftp-get
-;	     "'TDS.UBOPSTAT.JP50G361'"
-;	     "c:/users/e018462/appdata/roaming/.emacs.d/simple_ftp/jp50g361"))
