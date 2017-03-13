@@ -44,12 +44,16 @@
 
 (global-set-key (kbd "M-x") 'helm-M-x)
 
+(require 'zone)
+(zone-when-idle 60)
+
     ;;;;;;
     ;;; install and update packages
     ;;;;;;
 
 ;; load default package-manager
 (require 'package)
+(setq package-enable-at-startup nil)
 
 ;; add standard repositories 
 (add-to-list
@@ -62,43 +66,58 @@
 
 (add-to-list
  'package-archives
+ '("marmalade" . "http://marmalade-repo.org/packages/") t)
+
+(add-to-list
+ 'package-archives
  '("melpa-stable" . "http://stable.melpa.org/packages/") t)
 
-;; not sure what the intention here is...
-(setq package-enable-at-startup nil)
+(add-to-list
+ 'package-archives
+ '("gnu" . "http://elpa.gnu.org/packages/") t)
+
 (package-initialize)
 
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+
+(eval-when-compile
+  (require 'use-package))
+(require 'diminish)
+;;(require 'bind-key)
+
 ;; make sure installed-package listing exists
-(or (file-exists-p package-user-dir)
-    (package-refresh-contents))
+;;(or (file-exists-p package-user-dir)
+;;    (package-refresh-contents))
 
 ;; load custom functions (needed here for ensure-package-installed)
 (load-file "~/.emacs.d/cust-funcs/cust-funcs.el")
 
 ;; install my "standard" packages if they aren't already
-					;          (ensure-package-installed
-					;              'iedit
-					;              'magit
-					;              'evil
-					;              'evil-escape
-					;              'evil-surround
-					;              'evil-leader
-					;              'key-chord
-					;              'powerline
-					;              'projectile
-					;              'helm
-					;              'helm-projectile
-					;              'company
-					;              'relative-line-numbers
-					;              'fill-column-indicator
-					;              'caps-lock
-					;              'evil-visual-mark-mode
-					;	      'evil-indent-plus
-					;              'use-package)
-					;'evil-tabs
-					;'flycheck
-					;'yasnippet
-					;'jabber
+;;          (ensure-package-installed
+;;              'iedit
+;;              'magit
+;;              'evil
+;;              'evil-escape
+;;              'evil-surround
+;;              'evil-leader
+;;              'key-chord
+;;              'powerline
+;;              'projectile
+;;              'helm
+;;              'helm-projectile
+;;              'company
+;;              'relative-line-numbers
+;;              'fill-column-indicator
+;;              'caps-lock
+;;              'evil-visual-mark-mode
+;;	      'evil-indent-plus
+;;              'use-package)
+;;'evil-tabs
+;;'flycheck
+;;'yasnippet
+;;'jabber
 
     ;;;;;;
     ;;; configure cobol and rexx modes
@@ -141,17 +160,26 @@
 
 (use-package evil
   :ensure t
+  :diminish evil-mode
   :config
   (evil-mode 1)
 
   (use-package evil-leader
     :ensure t
+    :diminish evil-leader-mode
     :config
     (global-evil-leader-mode)
     (setq evil-leader/in-all-states 1)
     (evil-leader/set-leader "SPC")
     (evil-leader/set-key-for-mode 'eshell-mode "c" 'helm-eshell-history))
 
+
+  ;; ii: A block of text with the same or higher indentation.
+  ;; ai: The same as ii, plus whitespace.
+  ;; iI: A block of text with the same or higher indentation, including the first line above with less indentation.
+  ;; aI: The same as iI, plus whitespace.
+  ;; iJ: A block of text with the same or higher indentation, including the first line above and below with less indentation.
+  ;; aJ: The same as iJ, plus whitespace.
   (use-package evil-indent-plus
     :ensure t
     :config
@@ -232,16 +260,16 @@
     "i" #'(lambda ()
 	    (interactive)
 	    (save-mark-and-excursion
-	      (mark-whole-buffer)
-	      (indent-region (point) (mark))))
+	     (mark-whole-buffer)
+	     (indent-region (point) (mark))))
     "T" 'eshell
     "w" 'save-buffer
     "qq" #'(lambda ()
-	    (interactive)
-	    (cd "c:/users/e018462/appdata/Roaming"))
+	     (interactive)
+	     (cd "c:/users/e018462/appdata/Roaming"))
     "qw" #'(lambda ()
-	    (interactive)
-	    (cd "c:/Users/e018462/Documents/src")))
+	     (interactive)
+	     (cd "c:/Users/e018462/Documents/src")))
 
   ;; look into setting "jk" to these values
   (define-key evil-normal-state-map [escape] 'keyboard-quit)
@@ -260,7 +288,13 @@
    'evil-insert-state-exit-hook
    (lambda ()
      (if caps-lock-mode
-	 (caps-lock-mode -1)))))
+	 (caps-lock-mode -1))))
+
+  (add-hook
+   'evil-insert-state-entry-hook
+   (lambda ()
+     (if (equal major-mode 'cobol-mode)
+	 (caps-lock-mode t)))))
 
     ;;;;;;
     ;;; configure helm
@@ -268,7 +302,9 @@
 
 (use-package helm
   :ensure t
-					;:defer 10
+  ;;:defer t
+  :diminish helm-mode
+  ;;:defer 10
   :config
   (setq helm-M-x-fuzzy-match                  t
 	helm-bookmark-show-location           t
@@ -292,9 +328,16 @@
 
 (use-package projectile
   :ensure t
-  :defer 10
-  :config
+  :defer t
+  ;;:diminish projectile-mode
+  :init
   (projectile-mode t)
+  (use-package helm-projectile
+    :ensure t
+    :defer t
+    :after helm
+    :config
+    (helm-projectile-on))
 
   (setq projectile-enable-caching t)
 
@@ -330,10 +373,8 @@
   (setq projectile-use-git-grep 1)
   (setq projectile-indexing-method 'alien))
 
-
-(use-package helm-projectile :ensure t)
-					;  :config
-					;  (require 'helm-projectile))
+;;  :config
+;;  (require 'helm-projectile))
 
     ;;;;;;
     ;;; configure org mode
@@ -341,7 +382,7 @@
 
 (use-package org
   :ensure t
-  :defer  5
+  :defer  t
   :config
   (setq
    org-agenda-files
@@ -358,7 +399,7 @@
 
   (use-package evil-org :ensure t)
   
-					;(require 'evil-org)
+  ;;(require 'evil-org)
   
   (setq org-todo-keywords
 	'((sequence
@@ -393,20 +434,30 @@
 (use-package powerline
   :ensure t
   :config
-					;(require 'powerline)
+  ;;(require 'powerline)
   (powerline-default-theme))
 
 (use-package fill-column-indicator
   :ensure t
-  :defer 15)
+  :defer 15
+  :config
+  (setq-default fill-column 72))
 
 (use-package company
   :ensure t
-  :defer 10
+  :defer t
+  :diminish company-mode
+  :init (add-hook 'after-init-hook 'global-company-mode)
   :config 
-  (global-company-mode))
-					;(company-mode t) 
-					;(add-hook 'after-init-hook 'global-company-mode))
+  (setq company-idle-delay              .1
+  	company-minimum-prefix-length   2
+  	company-show-numbers            t
+  	company-tooltip-limit           20
+  	company-dabbrev-downcase        nil))
+;;(global-company-mode))
+
+;;(company-mode t) 
+;;(add-hook 'after-init-hook 'global-company-mode))
 
 (use-package relative-line-numbers
   :ensure t
@@ -417,13 +468,13 @@
   (add-hook 'prog-mode-hook 'relative-line-numbers-mode t)
   (add-hook 'prog-mode-hook 'line-number-mode t)
   (add-hook 'rexx-mode-hook 'relative-line-numbers-mode t))
-					;  (defun relative-line-numbers-default-format (offset)
-					;    "The default formatting function.
-					;Return the absolute value of OFFSET, converted to string."
-					;    (number-to-string (abs offset)))
-					;     (if (= offset 0)
-					;	 (line-number-at-pos)
-					;       (abs offset))))
+;;  (defun relative-line-numbers-default-format (offset)
+;;    "The default formatting function.
+;;Return the absolute value of OFFSET, converted to string."
+;;    (number-to-string (abs offset)))
+;;     (if (= offset 0)
+;;	 (line-number-at-pos)
+;;       (abs offset))))
 
 (use-package key-chord
   :ensure t
@@ -431,42 +482,56 @@
   (key-chord-mode 1) 
   (setq key-chord-two-keys-delay 0.1))
 
-(use-package iedit :defer 30)
+(use-package iedit :defer t)
 
 (use-package magit
   :ensure t
-  :defer 60)
+  :defer t)
 
 (use-package caps-lock
   :ensure t
-  :defer 10)
+  :defer t)
 
-					;(use-package evil-tabs :defer 100)
-(use-package flycheck :defer 100)
-					;(use-package yasnippet :defer 90)
-					;(use-package jabber :defer 100)
+;;(use-package evil-tabs :defer 100)
+;;(use-package flycheck :defer 100)
+;;(use-package yasnippet :defer 90)
+;;(use-package jabber :defer 100)
 
 
 ;;do more research on flycheck
 ;; flycheck
 ;;(package 'flycheck)
-					; (add-hook 'after-init-hook #'global-flycheck-mode)
+;; (add-hook 'after-init-hook #'global-flycheck-mode)
 
-					; (after 'flycheck
-					;   (setq flycheck-check-syntax-automatically '(save mode-enabled))
-					;   (setq flycheck-checkers (delq 'emacs-lisp-checkdoc flycheck-checkers))
-					;   (setq flycheck-checkers (delq 'html-tidy flycheck-checkers))
-					;   (setq flycheck-standard-error-navigation nil))
+;; (after 'flycheck
+;;   (setq flycheck-check-syntax-automatically '(save mode-enabled))
+;;   (setq flycheck-checkers (delq 'emacs-lisp-checkdoc flycheck-checkers))
+;;   (setq flycheck-checkers (delq 'html-tidy flycheck-checkers))
+;;   (setq flycheck-standard-error-navigation nil))
 
-					; (global-flycheck-mode t)
+;; (global-flycheck-mode t)
 
-					; ;; flycheck errors on a tooltip (doesnt work on console)
-					; (when (display-graphic-p (selected-frame))
-					;   (eval-after-load 'flycheck
-					;     '(custom-set-variables
-					;       '(flycheck-display-errors-function #'flycheck-pos-tip-error-messages))))
+;; ;; flycheck errors on a tooltip (doesnt work on console)
+;; (when (display-graphic-p (selected-frame))
+;;   (eval-after-load 'flycheck
+;;     '(custom-set-variables
+;;       '(flycheck-display-errors-function #'flycheck-pos-tip-error-messages))))
 
 
-					; (require 'jabber)
-					; (setq jabber-invalid-certificate-servers '("cup1.aoins.com"))
+;; (require 'jabber)
+;; (setq jabber-invalid-certificate-servers '("cup1.aoins.com"))
 (put 'narrow-to-region 'disabled nil)
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages
+   (quote
+    (zone-matrix yasnippet use-package relative-line-numbers powerline magit key-chord jabber iedit helm-projectile flycheck fill-column-indicator evil-visual-mark-mode evil-tabs evil-surround evil-org evil-indent-plus evil-escape company caps-lock))))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )

@@ -1,15 +1,20 @@
 (defvar nsync-current-connection)
 ;; cons cell containing the host and username for the current connection
 
-(defun nsync-create-new-project)
+(defvar nsync-backup-home)
+
+
+(defun nsync-create-new-project (name local-files remote-files)
+  (let ((
 ;; name
-;; path to project root (for when a project needs to be moved)
-;; alist/plist/hash-table of remote files -> local files
-;; alist/plist/hash-table of known hosts -> remote project roots
+;; path to backup folder
+;; local files --> keys (numbers?)
+;; hosts --> schemes
+;; schemes --> (keys --> remote files)
 
 
 (defun nsync-sync-project-deploy)
-;;
 
 
 (defun nsync-sync-project-pull)
+
