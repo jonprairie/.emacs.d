@@ -149,6 +149,7 @@ The next key typed is executed unless it is SPC."
     "FLAG-02"
     "FLAG-85"
     "FLAG-NATIVE-ARITHMETIC"
+    "EXEC"
     "IF"
     "IMP"
     "LEAP-SECOND"
@@ -181,6 +182,7 @@ The next key typed is executed unless it is SPC."
     "GENERATE"
     "GO"
     "IF"
+    "EXEC"
     "INITIATE"
     "INSPECT"
     "MERGE"
@@ -294,6 +296,7 @@ The next key typed is executed unless it is SPC."
     "END-DIVIDE"
     "END-EVALUATE"
     "END-IF"
+    "END-EXEC"
     "END-MULTIPLY"
     "END-PERFORM"
     "END-READ"
@@ -335,10 +338,14 @@ The next key typed is executed unless it is SPC."
     "END-WAIT"
     "END-XML"))
 
+(defconst cobol-scope-terminators-period
+  '("."))
+
 (defconst cobol-scope-terminators
   (append cobol-scope-terminators-2014
           cobol-scope-terminators-xml-tr
-          cobol-scope-terminators-extensions))
+          cobol-scope-terminators-extensions
+	  cobol-scope-terminators-period))
 
 (defconst cobol-keywords-74
   '("ACCESS"
@@ -373,6 +380,7 @@ The next key typed is executed unless it is SPC."
     "COLLATING"
     "COLUMN"
     "COMMA"
+    "COMMAREA"
     "COMMUNICATION"
     "COMP"
     "COMPUTATIONAL"
@@ -457,7 +465,7 @@ The next key typed is executed unless it is SPC."
     "LAST"
     "LEADING"
     "LEFT"
-    ; LENGTH is treated as an intrinsic function.
+					; LENGTH is treated as an intrinsic function.
     "LESS"
     "LIMIT"
     "LIMITS"
@@ -2042,8 +2050,8 @@ newlines.")
 
 (defconst cobol--define-directive-re
   (cobol--with-opt-whitespace-line cobol--directive-indicator-re
-                                  "DEFINE"
-                                  cobol--identifier-re)
+				   "DEFINE"
+				   cobol--identifier-re)
   "Regexp matching values defined by the pre-processor.")
 
 (defconst cobol--descriptor-level-re
@@ -2182,7 +2190,7 @@ DECLARATIVES.")
   "Regexp matching a scope terminator.")
 
 (defconst cobol--phrases-with-double-indent-after
-  "\\(IF\\|EVALUATE\\|WHEN\\|ELSE\\|PERFORM\\s-+\\(VARYING\\|UNTIL\\|\\(WITH\\s-+\\)?TEST\\|.+?\\s-+TIMES\\)\\)"
+  "\\(IF\\|EVALUATE\\|EXEC\\|WHEN\\|ELSE\\|PERFORM\\s-+\\(VARYING\\|UNTIL\\|\\(WITH\\s-+\\)?TEST\\|.+?\\s-+TIMES\\)\\)"
   "Regexp matching phrases whose conditions/clauses are indented twice.")
 
 (defconst cobol--containing-statement-or-phrase-re
@@ -2195,6 +2203,10 @@ DECLARATIVES.")
 (defconst cobol--verb-re
   (cobol--with-opt-whitespace-line (regexp-opt cobol-verbs 'words))
   "Regexp matching a verb.")
+
+(defconst cobol--verb-term-re
+  (cobol--with-opt-whitespace-line (regexp-opt (append cobol-verbs cobol-scope-terminators) 'words))
+  "Regexp matching verbs and scope-terminators")
 
 (defconst cobol--non-id-groups
   ;; AUTO-METHOD is part of the Finalizer TR.
@@ -2240,6 +2252,12 @@ DECLARATIVES.")
 (defconst cobol--blank-line-re
   (cobol--with-opt-whitespace-line "\\.?$")
   "Regexp matching a blank line with optional period.")
+
+(defconst cobol--ends-with-period-re
+  (cobol--with-opt-whitespace-line ".*\\.[ 	]*[0-9]\\{0,8\\}[ 	]*$"))
+
+(defun cobol--ends-with-period ()
+  (looking-at-p cobol--ends-with-period-re))
 
 ;;; Font lock
 
@@ -2296,7 +2314,7 @@ to END."
   (funcall
    (syntax-propertize-rules
     ((cobol--with-opt-whitespace-line cobol--directive-indicator-re
-                                     "PAGE\\([ 	]\\)")
+				      "PAGE\\([ 	]\\)")
      (1 "<")))
    beg end))
 
@@ -2456,11 +2474,11 @@ and ignored areas) between points BEG and END."
 (defun cobol-when-with-also (prompt num-also)
   "Create a WHEN clause skeleton with provided PROMPT and NUM-ALSO ALSOs."
   `(,prompt "WHEN " str
-    ,@(let ((clauses nil))
-        (dotimes 'num-also
-          (setf clauses (append clauses `(" ALSO " (skeleton-read ,prompt)))))
-        clauses)
-    > \n > _ \n))
+	    ,@(let ((clauses nil))
+		(dotimes 'num-also
+		  (setf clauses (append clauses `(" ALSO " (skeleton-read ,prompt)))))
+		clauses)
+	    > \n > _ \n))
 
 (define-skeleton cobol-skeleton-evaluate
   "Insert an EVALUATE - END-EVALUATE block."
@@ -2633,7 +2651,7 @@ and ignored areas) between points BEG and END."
   "Return the indentation of the current line or -1 if the line is within the
 sequence area."
   (if (< (- (line-end-position) (line-beginning-position)) (cobol--code-start))
-     -1
+      -1
     (save-excursion
       (goto-char (+ (line-beginning-position) (cobol--code-start)))
       (let ((code-start-position (point)))
@@ -2653,10 +2671,62 @@ value is non-nil, return the cdr."
         ((car ret) (cdr ret))
       (forward-line -1))))
 
+(defun cobol--search-forward (fn)
+  "Go forward a line at a time, calling FN each time. If the car of the return
+value is non-nil, return the cdr."
+  (save-excursion
+    (do ((ret nil (funcall fn)))
+        ((car ret) (cdr ret))
+      (forward-line 1))))
+
+(cl-defun cobol--search-for-line-num (str &key with-whitespace (direction t))
+  (let ((line-re (concat (when with-whitespace cobol--optional-leading-whitespace-line-re) str)))
+    (funcall
+     (if direction
+	 #'cobol--search-back
+       #'cobol--search-forward)
+     #'(lambda () (cond ((funcall (if direction #'bobp #'eobp))
+			 (cons t nil))
+			((looking-at line-re)
+			 (cons t (line-number-at-pos))))))))
+
+(defun cobol--last-statement-ends-with-period-p ()
+  (save-excursion
+    (let ((line-num (cobol--search-for-line-num cobol--verb-term-re)))
+      (when line-num
+	(goto-line line-num)
+	(beginning-of-line)
+	(looking-at-p cobol--ends-with-period-re)))))
+
+(defconst cobol--exit-re
+  (cobol--with-opt-whitespace-line (regexp-opt (list "EXIT") 'words))
+  "Regexp matching an exit statement")
+
+(defun cobol--last-statement-was-exit-p ()
+  (save-excursion
+    (let ((line-num (cobol--search-for-line-num cobol--verb-term-re)))
+      (when line-num
+	(goto-line line-num)
+	(beginning-of-line)
+	(looking-at-p cobol--exit-re)))))
+
+(defun cobol--indent-of-bounded-last-stmt ()
+  (save-excursion
+    (let ((line-num-1 (cobol--search-for-line-num cobol--ends-with-period-re)))
+      (when line-num-1 ; should be using when-bind here :/
+	(goto-line line-num-1)
+	(let ((line-num-2 (cobol--search-for-line-num cobol--ends-with-period-re)))
+	  (when line-num-2
+	    (goto-line line-num-2)
+	    (let ((line-num-3 (cobol--search-for-line-num cobol--verb-term-re :direction nil)))
+	      (when line-num-3
+		(goto-line line-num-3)
+		(cobol--current-indentation)))))))))
+
 (cl-defun cobol--search-back-for-indent (str &key with-whitespace)
   "Return the indent of the previous line starting with the regexp STR (optionally
 after whitespace if WITH-WHITESPACE). If that cannot be found, return 0."
-  (let ((line-re (concat (when with-whitespace cobol--optional-whitespace-re)
+  (let ((line-re (concat (when with-whitespace cobol--optional-leading-whitespace-line-re)
                          str)))
     (cobol--search-back
      #'(lambda () (cond ((bobp)
@@ -2763,18 +2833,18 @@ lines."
         ((string-match (cobol--at-phrase "END") str)
          ;; An AT END clause is added to OPEN in the XML TR.
          '("OPEN" "READ" "RETURN" "SEARCH"))
-         ((string-match (cobol--on-phrase "OVERFLOW") str)
-          '("CALL" "STRING" "UNSTRING"))
-         ((string-match (cobol--on-phrase "EXCEPTION") str)
-          '("ACCEPT" "CALL" "DISPLAY"))
-         ((string-match (cobol--on-phrase "ESCAPE") str)
-          '("ACCEPT")) ; MF/ACUCOBOL extension
-         ((string-match (cobol--on-phrase "SIZE\\s-+ERROR") str)
-          '("ADD" "COMPUTE" "DIVIDE" "MULTIPLY" "SUBTRACT"))
-         ((string-match (cobol--phrase-with-not "INVALID\\s-+KEY") str)
-          '("DELETE" "READ" "REWRITE" "START"))
-         (t
-          (error "Invalid phrase"))))
+	((string-match (cobol--on-phrase "OVERFLOW") str)
+	 '("CALL" "STRING" "UNSTRING"))
+	((string-match (cobol--on-phrase "EXCEPTION") str)
+	 '("ACCEPT" "CALL" "DISPLAY"))
+	((string-match (cobol--on-phrase "ESCAPE") str)
+	 '("ACCEPT")) ; MF/ACUCOBOL extension
+	((string-match (cobol--on-phrase "SIZE\\s-+ERROR") str)
+	 '("ADD" "COMPUTE" "DIVIDE" "MULTIPLY" "SUBTRACT"))
+	((string-match (cobol--phrase-with-not "INVALID\\s-+KEY") str)
+	 '("DELETE" "READ" "REWRITE" "START"))
+	(t
+	 (error "Invalid phrase"))))
 
 (defun cobol--scope-terminator-statement (scope-terminator)
   "Return the statement contained in SCOPE-TERMINATOR."
@@ -2822,7 +2892,8 @@ lines."
   (let ((phrase (upcase (cobol--first-word str))))
     (cond ((or (string-equal phrase "IF")
                (string-equal phrase "EVALUATE")
-               (string-equal phrase "PERFORM"))
+               (string-equal phrase "PERFORM")
+	       (string-equal phrase "EXEC"))
            (cobol--indent-from-previous))
 
           ((string-equal phrase "ELSE")
@@ -2830,7 +2901,7 @@ lines."
 
           (t
            (cobol--indent (cobol--indent-of-open-statement
-                          (cobol--statements-with-phrase str)))))))
+			   (cobol--statements-with-phrase str)))))))
 
 (defun cobol--get-current-division ()
   "Return the division containing the point as a symbol."
@@ -2867,20 +2938,27 @@ not in division or if nothing is found."
           nil
           "Clauses should be in the form 're AFTER re-2 IN division'.")
   `(cobol--no-instances-of-after-in-division ,(first clauses) ,(nth 2 clauses)
-                                            ,(nth 4 clauses)))
+					     ,(nth 4 clauses)))
 
 (defun cobol--in-file-control-p ()
   "Return whether the point is in the FILE-CONTROL paragraph."
   (cobol--no-instances-of cobol--procedure-re
-                         after (cobol--with-opt-whitespace-line "FILE-CONTROL.")
-                         in 'environment))
+			  after (cobol--with-opt-whitespace-line "FILE-CONTROL.")
+			  in 'environment))
 
 (defun cobol--no-statements-after (re)
   "Return whether there are any statements between the point and the previous
 instance of RE."
   (cobol--no-instances-of cobol--verb-re
-                         after re
-                         in 'procedure))
+			  after re
+			  in 'procedure))
+
+(defun cobol--no-periods-after (re)
+  "Return whether there are any lines that end in a period between the point and 
+the previous instance of RE"
+  (cobol--no-instances-of cobol--ends-with-period-re
+			  after re
+			  in 'procedure))
 
 (defun cobol--in-proc-div-param-list-p ()
   "Return whether the point is in the procedure division header parameter list."
@@ -2889,12 +2967,16 @@ instance of RE."
 (defun cobol--in-if-eval-when-or-perform-cond-p ()
   "Return whether the point is in the condition of an IF, EVALUATE or WHEN or in
 the clauses of a non-procedural PERFORM."
-  (cobol--no-statements-after (cobol--with-opt-whitespace-line
-                              cobol--phrases-with-double-indent-after)))
+  (and
+   (cobol--no-statements-after (cobol--with-opt-whitespace-line
+				cobol--phrases-with-double-indent-after))
+   (cobol--no-periods-after (cobol--with-opt-whitespace-line
+			     cobol--phrases-with-double-indent-after))))
 
 (defun cobol--indent-of-last-statement ()
   "Return the indent of the last statement."
-  (cobol--search-back-for-indent cobol--verb-re))
+  (cobol--search-back-for-indent cobol--verb-term-re))
+;;  (cobol--search-back-for-indent cobol--verb-re))
 
 (defun cobol--indent-of-clauses ()
   "Return the indentation for a clause at the point."
@@ -2913,18 +2995,31 @@ the clauses of a non-procedural PERFORM."
 
           ((eq current-division 'procedure)
            (cond ((cobol--in-proc-div-param-list-p)
-                  ;; Indent procedure division parameter list twice.
+                  ;; Indent procedure division parameter list.
                   (cobol--indent (cobol--search-back-for-indent cobol--procedure-division-re)
-                                2))
-                ((cobol--in-if-eval-when-or-perform-cond-p)
-                 ;; Indent after IF/EVALUATE/WHEN/non-procedural PEROFRM twice.
-                 (cobol--indent (cobol--search-back-for-indent
-                                cobol--phrases-with-double-indent-after
-                                :with-whitespace t)
-                               2))
-                ;; Indent once after any other statement.
-                (t
-                 (cobol--indent (cobol--indent-of-last-statement))))))))
+				 1))
+		 ((cobol--in-if-eval-when-or-perform-cond-p)
+		  ;; Indent after IF/EVALUATE/WHEN/non-procedural PERFORM.
+		  (cobol--indent (cobol--search-back-for-indent
+				  cobol--phrases-with-double-indent-after
+				  :with-whitespace t)
+				 1))
+		 ;; we need a test for paragraph name as well
+		 ;; we also need to check if current indentation >= recommended
+		 ;; indentation, if so we need to default to indenting by four spaces.
+		 ((cobol--last-statement-was-exit-p)
+		  ;; No indent after EXIT statement.
+		  (cobol--indent 0 0))
+		 ((cobol--last-statement-ends-with-period-p)
+		  ;; Indent to top level of the previous statement.
+		  (let ((indent-level (cobol--indent-of-bounded-last-stmt)))
+		    (if indent-level
+			(cobol--indent indent-level 0)
+		      (progn
+			(cobol--indent 0 0)
+			(message "%s" "bounded last statement failed")))))
+		 (t
+		  (cobol--indent (cobol--indent-of-last-statement) 0)))))))
 
 (defun cobol--looking-at-comment-line ()
   "Return whether we are looking at a comment line (using `looking-at')."
@@ -3060,8 +3155,10 @@ start of area A, if fixed-format)."
   ;; Auto complete mode
   (set (make-local-variable 'ac-ignore-case) t)
 
+					;(add-hook 'cobol-mode-hook
+					;          #'(lambda () (local-set-key (kbd "RET") #'newline-and-indent)))
   (add-hook 'cobol-mode-hook
-            #'(lambda () (local-set-key (kbd "RET") #'newline-and-indent)))
+	    (local-set-key (kbd "RET") #'evil-ret-and-indent))
 
   ;; Some kind of hook call for GNU-correctness
   )

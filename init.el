@@ -2,14 +2,15 @@
 ;;;; This is a .emacs file. There are many like it, but this is mine.
 ;;;;;;;;
 
-    ;;;;;;
-    ;;; emacs preferences
-    ;;;;;;
 
-;; enter debugger on lisp evaluation error 
+;;; emacs preferences
+
+
 (setq debug-on-error t)
 
-;; disable menu-bar, tool-bar and scroll-bar
+(set-face-attribute 'default nil :family "Consolas")
+(set-fontset-font t 'unicode (font-spec :name "Segoe UI Symbol") nil 'append)
+
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
@@ -17,45 +18,48 @@
 ;; turn off automatic line-breaks
 (auto-fill-mode -1)
 
-;; load pleasant, dark-blue theme
 (load-theme 'deeper-blue t)
 
-;; show function definition in mode line on "hover"
+;; show function definition in mode line on cursor "hover"
 (which-function-mode 1)
 
-;; show matching parentheses
 (show-paren-mode 1)
 
 ;; mark up files with defined syntaxes (like source code)
 (global-font-lock-mode 't)
 
-;; turn off back-up file generation
 (setq make-backup-files nil)
 
-;; turn off annoying alarm
 (setq ring-bell-function 'ignore)
 
-;; start emacs maximized
 (setq initial-frame-alist '((fullscreen . maximized)))
 
-;; (global-linum-mode t)
-(display-time-mode t) ;?
-;; (line-number-mode t)
+(display-time-mode t)
 
+;; replace emacs M-x with helm-M-x
 (global-set-key (kbd "M-x") 'helm-M-x)
 
 (require 'zone)
-(zone-when-idle 60)
+(zone-when-idle 240)
 
-    ;;;;;;
-    ;;; install and update packages
-    ;;;;;;
 
-;; load default package-manager
+;;; mode line customization
+
+
+(column-number-mode t)
+(line-number-mode t)
+
+
+;;; install and update packages
+
+
 (require 'package)
 (setq package-enable-at-startup nil)
 
-;; add standard repositories 
+(add-to-list
+ 'package-archives
+ '("elpy" . "https://jorgenschaefer.github.io/packages/"))
+
 (add-to-list
  'package-archives
  '("org" . "http://orgmode.org/elpa/") t)
@@ -87,11 +91,7 @@
 (require 'diminish)
 ;;(require 'bind-key)
 
-;; make sure installed-package listing exists
-;;(or (file-exists-p package-user-dir)
-;;    (package-refresh-contents))
-
-;; load custom functions (needed here for ensure-package-installed)
+;; load custom functions 
 (load-file "~/.emacs.d/cust-funcs/cust-funcs.el")
 
 ;; install my "standard" packages if they aren't already
@@ -119,9 +119,9 @@
 ;;'yasnippet
 ;;'jabber
 
-    ;;;;;;
-    ;;; configure cobol and rexx modes
-    ;;;;;;
+
+;;; configure cobol and rexx modes
+
 
 ;; load cobol-mode
 (add-to-list 'load-path "~/.emacs.d/cobol-mode")
@@ -154,13 +154,13 @@
 (add-hook 'cobol-mode-hook (lambda () (toggle-truncate-lines)))
 (add-hook 'rexx-mode-hook (lambda () (toggle-truncate-lines)))
 
-    ;;;;;;
-    ;;; configure evil mode
-    ;;;;;;
+
+;;; configure evil mode
+
 
 (use-package evil
   :ensure t
-  :diminish evil-mode
+  :diminish undo-tree-mode
   :config
   (evil-mode 1)
 
@@ -296,15 +296,23 @@
      (if (equal major-mode 'cobol-mode)
 	 (caps-lock-mode t)))))
 
-    ;;;;;;
-    ;;; configure helm
-    ;;;;;;
+(use-package evil-snipe
+  :diminish evil-snipe-local-mode
+  ;;:ensure t
+  :after evil
+  :init
+  (evil-snipe-mode 1)
+  (setq evil-snipe-scope 'buffer
+	evil-snipe-repeat-scope 'buffer)
+  (add-hook 'magit-mode-hook 'turn-off-evil-snipe-override-mode))
+
+
+;;; configure helm
+
 
 (use-package helm
   :ensure t
-  ;;:defer t
   :diminish helm-mode
-  ;;:defer 10
   :config
   (setq helm-M-x-fuzzy-match                  t
 	helm-bookmark-show-location           t
@@ -322,14 +330,13 @@
 
   (helm-mode 1))
 
-    ;;;;;;
-    ;;; configure projectile
-    ;;;;;;
+
+;;; configure projectile
+
 
 (use-package projectile
   :ensure t
   :defer t
-  ;;:diminish projectile-mode
   :init
   (projectile-mode t)
   (use-package helm-projectile
@@ -371,14 +378,13 @@
   (projectile-global-mode)
 
   (setq projectile-use-git-grep 1)
-  (setq projectile-indexing-method 'alien))
+  (setq projectile-indexing-method 'alien)
+  (setq-default projectile-mode-line
+		'(:eval (format " [%s]" (projectile-project-name)))))
 
-;;  :config
-;;  (require 'helm-projectile))
 
-    ;;;;;;
-    ;;; configure org mode
-    ;;;;;;
+;;; configure org mode
+
 
 (use-package org
   :ensure t
@@ -427,15 +433,33 @@
   (setq org-agenda-window-setup 'current-window)
   (setq org-agenda-restore-windows-after-quit t))
 
-    ;;;;;;
-    ;;; configure miscellaneous packages
-    ;;;;;;
 
-(use-package powerline
-  :ensure t
-  :config
-  ;;(require 'powerline)
-  (powerline-default-theme))
+;;; configure miscellaneous packages
+
+
+;;(use-package powerline
+;;  :ensure t
+;;  :config
+;;  (setq
+;;   powerline-height (truncate (* 1.0 (frame-char-height)))
+;;   powerline-default-separator 'utf-8))
+;;   ;;(powerline-default-theme))
+
+
+;;(use-package airline-themes
+;;  :ensure t
+;;  :config
+;;  (setq powerline-utf-8-separator-left        #xe0b0
+;;	powerline-utf-8-separator-right       #xe0b2
+;;	airline-utf-glyph-separator-left      #xe0b0
+;;	airline-utf-glyph-separator-right     #xe0b2
+;;	airline-utf-glyph-subseparator-left   #xe0b1
+;;	airline-utf-glyph-subseparator-right  #xe0b3
+;;	airline-utf-glyph-branch              #xe0a0
+;;	airline-utf-glyph-readonly            #xe0a2
+;;	airline-utf-glyph-linenumber          #xe0a1)
+;;  (load-theme 'airline-light t))
+
 
 (use-package fill-column-indicator
   :ensure t
@@ -443,21 +467,39 @@
   :config
   (setq-default fill-column 72))
 
+
+(defun custom-company-complete-number (n)
+  "if the company tooltip is visible, complete the candidate designated by N. Otherwise, call the function that is globally bound to N twice. 
+
+this is a pretty hacky solution, I should probably clean it up a bit."
+  (if (company-tooltip-visible-p)
+      (company-complete-number n)
+    (funcall (global-key-binding (number-to-string (if (= n 10) 0 n))) 2)))
+
 (use-package company
   :ensure t
   :defer t
   :diminish company-mode
   :init (add-hook 'after-init-hook 'global-company-mode)
   :config 
-  (setq company-idle-delay              .1
+  (setq company-idle-delay              .2
   	company-minimum-prefix-length   2
   	company-show-numbers            t
   	company-tooltip-limit           20
-  	company-dabbrev-downcase        nil))
-;;(global-company-mode))
+  	company-dabbrev-downcase        nil)
+  (key-chord-def-list
+   "i"
+   (("11" '(lambda () (interactive) (custom-company-complete-number 1)))
+    ("22" '(lambda () (interactive) (custom-company-complete-number 2)))
+    ("33" '(lambda () (interactive) (custom-company-complete-number 3)))
+    ("44" '(lambda () (interactive) (custom-company-complete-number 4)))
+    ("55" '(lambda () (interactive) (custom-company-complete-number 5)))
+    ("66" '(lambda () (interactive) (custom-company-complete-number 6)))
+    ("77" '(lambda () (interactive) (custom-company-complete-number 7)))
+    ("88" '(lambda () (interactive) (custom-company-complete-number 8)))
+    ("99" '(lambda () (interactive) (custom-company-complete-number 9)))
+    ("00" '(lambda () (interactive) (custom-company-complete-number 10))))))
 
-;;(company-mode t) 
-;;(add-hook 'after-init-hook 'global-company-mode))
 
 (use-package relative-line-numbers
   :ensure t
@@ -467,7 +509,8 @@
 	'forward-visible-line)
   (add-hook 'prog-mode-hook 'relative-line-numbers-mode t)
   (add-hook 'prog-mode-hook 'line-number-mode t)
-  (add-hook 'rexx-mode-hook 'relative-line-numbers-mode t))
+  (add-hook 'rexx-mode-hook 'relative-line-numbers-mode t)
+  (add-hook 'dired-mode-hook 'relative-line-numbers-mode t))
 ;;  (defun relative-line-numbers-default-format (offset)
 ;;    "The default formatting function.
 ;;Return the absolute value of OFFSET, converted to string."
@@ -476,21 +519,72 @@
 ;;	 (line-number-at-pos)
 ;;       (abs offset))))
 
+
 (use-package key-chord
   :ensure t
   :config
   (key-chord-mode 1) 
   (setq key-chord-two-keys-delay 0.1))
 
-(use-package iedit :defer t)
+
+(use-package iedit
+  :defer t)
+
 
 (use-package magit
   :ensure t
   :defer t)
 
+
 (use-package caps-lock
   :ensure t
   :defer t)
+
+
+(use-package esup
+  :ensure t
+  :defer t)
+
+
+(use-package elpy
+  :ensure t
+  :defer 300
+  :config
+  (elpy-enable))
+
+
+;; Diminish extraneous info in the modeline
+(diminish 'abbrev-mode)
+(defun sk/diminish-auto-revert ()
+  "Diminishes the 'auto-revert-mode' in the mode line."
+  (interactive)
+  (diminish 'auto-revert-mode ""))
+(add-hook 'auto-revert-mode-hook 'sk/diminish-auto-revert)
+
+;(defmacro rename-major-mode (package-name mode new-name)
+;  "Renames a major mode."
+;  `(eval-after-load ,package-name
+;     '(defadvice ,mode (after rename-modeline activate)
+;	(setq mode-name ,new-name))))
+
+
+;(rename-major-mode "python" python-mode "π")
+;(rename-major-mode "shell" shell-mode "🐚")
+;(rename-major-mode "org" org-mode "📓") 
+;(rename-major-mode "org-agenda" org-agenda-mode "📅")
+;(rename-major-mode "lisp" lisp-mode "λ")
+;(rename-major-mode "cobol" cobol-mode "ಠ_ಠ")
+
+
+(add-hook 'python-mode-hook (lambda () (setq mode-name "π")))
+(add-hook 'lisp-mode-hook (lambda () (setq mode-name "λ")))
+(add-hook 'emacs-lisp-mode-hook (lambda () (setq mode-name "ϵλ")))
+(add-hook 'cobol-mode-hook (lambda () (setq mode-name "ಠ_ಠ")))
+(add-hook 'eshell-mode-hook (lambda () (setq mode-name "🐚")))
+(add-hook 'shell-mode-hook (lambda () (setq mode-name "🐚")))
+(add-hook 'org-mode-hook (lambda () (setq mode-name "📓")))
+(add-hook 'org-agenda-mode-hook (lambda () (setq mode-name "📅")))
+
 
 ;;(use-package evil-tabs :defer 100)
 ;;(use-package flycheck :defer 100)
@@ -526,9 +620,12 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(custom-safe-themes
+   (quote
+    ("962dacd99e5a99801ca7257f25be7be0cebc333ad07be97efd6ff59755e6148f" default)))
  '(package-selected-packages
    (quote
-    (zone-matrix yasnippet use-package relative-line-numbers powerline magit key-chord jabber iedit helm-projectile flycheck fill-column-indicator evil-visual-mark-mode evil-tabs evil-surround evil-org evil-indent-plus evil-escape company caps-lock))))
+    (airline-themes elpy esup zone-matrix yasnippet use-package relative-line-numbers powerline magit key-chord jabber iedit helm-projectile flycheck fill-column-indicator evil-visual-mark-mode evil-tabs evil-surround evil-org evil-indent-plus evil-escape company caps-lock))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
