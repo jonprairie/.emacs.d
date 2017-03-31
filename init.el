@@ -190,6 +190,11 @@
     :config
     (global-evil-surround-mode 1))
 
+  (use-package evil-commentary
+    :ensure t
+    :config
+    (evil-commentary-mode))
+
   (setq evil-emacs-state-cursor '("red" box))
   (setq evil-normal-state-cursor '("green" box))
   (setq evil-visual-state-cursor '("orange" box))
@@ -296,15 +301,15 @@
      (if (equal major-mode 'cobol-mode)
 	 (caps-lock-mode t)))))
 
-(use-package evil-snipe
-  :diminish evil-snipe-local-mode
-  ;;:ensure t
-  :after evil
-  :init
-  (evil-snipe-mode 1)
-  (setq evil-snipe-scope 'buffer
-	evil-snipe-repeat-scope 'buffer)
-  (add-hook 'magit-mode-hook 'turn-off-evil-snipe-override-mode))
+;; (use-package evil-snipe
+;;   :diminish evil-snipe-local-mode
+;;   ;;:ensure t
+;;   :after evil
+;;   :init
+;;   (evil-snipe-mode 1)
+;;   (setq evil-snipe-scope 'buffer
+;; 	evil-snipe-repeat-scope 'buffer)
+;;   (add-hook 'magit-mode-hook 'turn-off-evil-snipe-override-mode))
 
 
 ;;; configure helm
@@ -405,8 +410,6 @@
 
   (use-package evil-org :ensure t)
   
-  ;;(require 'evil-org)
-  
   (setq org-todo-keywords
 	'((sequence
 	   "TODO"
@@ -449,7 +452,7 @@
 ;;(use-package airline-themes
 ;;  :ensure t
 ;;  :config
-;;  (setq powerline-utf-8-separator-left        #xe0b0
+;;  (setq powerline-utf-8-separator-left      #xe0b0
 ;;	powerline-utf-8-separator-right       #xe0b2
 ;;	airline-utf-glyph-separator-left      #xe0b0
 ;;	airline-utf-glyph-separator-right     #xe0b2
@@ -542,7 +545,7 @@ this is a pretty hacky solution, I should probably clean it up a bit."
 
 
 (use-package esup
-  :ensure t
+  ;; :ensure t
   :defer t)
 
 
@@ -552,6 +555,8 @@ this is a pretty hacky solution, I should probably clean it up a bit."
   :config
   (elpy-enable))
 
+(use-package ov
+  :ensure t)
 
 ;; Diminish extraneous info in the modeline
 (diminish 'abbrev-mode)
@@ -625,7 +630,7 @@ this is a pretty hacky solution, I should probably clean it up a bit."
     ("962dacd99e5a99801ca7257f25be7be0cebc333ad07be97efd6ff59755e6148f" default)))
  '(package-selected-packages
    (quote
-    (airline-themes elpy esup zone-matrix yasnippet use-package relative-line-numbers powerline magit key-chord jabber iedit helm-projectile flycheck fill-column-indicator evil-visual-mark-mode evil-tabs evil-surround evil-org evil-indent-plus evil-escape company caps-lock))))
+    (ov evil-commentary airline-themes elpy esup zone-matrix yasnippet use-package relative-line-numbers powerline magit key-chord jabber iedit helm-projectile flycheck fill-column-indicator evil-visual-mark-mode evil-tabs evil-surround evil-org evil-indent-plus evil-escape company caps-lock))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
