@@ -240,7 +240,14 @@
   (evil-def-multi-keys-list
    "env"
    (((kbd "]") 'evil-next-line-and-scroll-to-top)
-    ((kbd "[") 'evil-prev-line-and-scroll-to-top)))
+    ((kbd "[") 'evil-prev-line-and-scroll-to-top)
+    ((kbd "s") nil)
+    ((kbd "sj") 'evil-scroll-down)
+    ((kbd "sJ") 'evil-goto-line)
+    ((kbd "sk") 'evil-scroll-up)
+    ((kbd "sK") 'evil-goto-first-line)
+    ((kbd "sh") 'evil-scroll-left)
+    ((kbd "sl") 'evil-scroll-right)))
 
   (key-chord-def-list
    "ievmourp"
@@ -248,7 +255,7 @@
     ("Jk" 'evil-normal-state)
     ("jK" 'evil-normal-state)
     ("JK" 'evil-normal-state)))
-
+  
   (evil-leader/set-key
     "mx" 'helm-M-x
     "g" 'magit-status                              
@@ -276,6 +283,10 @@
 	     (interactive)
 	     (cd "c:/Users/e018462/Documents/src")))
 
+  (evil-def-multi-keys-list
+   "n"
+   (((kbd "U") 'undo-tree-redo)))
+
   ;; look into setting "jk" to these values
   (define-key evil-normal-state-map [escape] 'keyboard-quit)
   (define-key evil-visual-state-map [escape] 'keyboard-quit)
@@ -299,7 +310,25 @@
    'evil-insert-state-entry-hook
    (lambda ()
      (if (equal major-mode 'cobol-mode)
-	 (caps-lock-mode t)))))
+	 (caps-lock-mode t))))
+
+  (defun evil-vblock-perf-advice (old-func)
+    "turn off relative-line-number mode and/or line-number mode when repeating insert commands (like in visual block mode, for instance). then turn them back on, if they were on originally.
+
+a bit hacky, but this substantially improves performance."
+    (let ((old-relative-lines relative-line-numbers-mode)
+	  (old-lines line-number-mode))
+      (if old-relative-lines
+	  (relative-line-numbers-mode -1))
+      (if old-lines
+	  (line-number-mode -1))
+      (funcall old-func)
+      (if old-relative-lines
+	  (relative-line-numbers-mode 1))
+      (if old-lines
+	  (line-number-mode 1))))
+
+  (advice-add 'evil-cleanup-insert-state :around 'evil-vblock-perf-advice))
 
 ;; (use-package evil-snipe
 ;;   :diminish evil-snipe-local-mode
@@ -407,6 +436,9 @@
   (add-to-list
    'load-path
    "~/.emacs.d/plugins/evil-org-mode")
+
+  ;; syntax highlighting for code blocks
+  (setq org-src-fontify-natively t)
 
   (use-package evil-org :ensure t)
   
@@ -527,7 +559,7 @@ this is a pretty hacky solution, I should probably clean it up a bit."
   :ensure t
   :config
   (key-chord-mode 1) 
-  (setq key-chord-two-keys-delay 0.1))
+  (setq key-chord-two-keys-delay 0.075))
 
 
 (use-package iedit
@@ -566,19 +598,19 @@ this is a pretty hacky solution, I should probably clean it up a bit."
   (diminish 'auto-revert-mode ""))
 (add-hook 'auto-revert-mode-hook 'sk/diminish-auto-revert)
 
-;(defmacro rename-major-mode (package-name mode new-name)
-;  "Renames a major mode."
-;  `(eval-after-load ,package-name
-;     '(defadvice ,mode (after rename-modeline activate)
-;	(setq mode-name ,new-name))))
+					;(defmacro rename-major-mode (package-name mode new-name)
+					;  "Renames a major mode."
+					;  `(eval-after-load ,package-name
+					;     '(defadvice ,mode (after rename-modeline activate)
+					;	(setq mode-name ,new-name))))
 
 
-;(rename-major-mode "python" python-mode "π")
-;(rename-major-mode "shell" shell-mode "🐚")
-;(rename-major-mode "org" org-mode "📓") 
-;(rename-major-mode "org-agenda" org-agenda-mode "📅")
-;(rename-major-mode "lisp" lisp-mode "λ")
-;(rename-major-mode "cobol" cobol-mode "ಠ_ಠ")
+					;(rename-major-mode "python" python-mode "π")
+					;(rename-major-mode "shell" shell-mode "🐚")
+					;(rename-major-mode "org" org-mode "📓") 
+					;(rename-major-mode "org-agenda" org-agenda-mode "📅")
+					;(rename-major-mode "lisp" lisp-mode "λ")
+					;(rename-major-mode "cobol" cobol-mode "ಠ_ಠ")
 
 
 (add-hook 'python-mode-hook (lambda () (setq mode-name "π")))
