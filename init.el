@@ -568,7 +568,10 @@ this is a pretty hacky solution, I should probably clean it up a bit."
 
 (use-package magit
   :ensure t
-  :defer t)
+  :defer t
+  :config
+  (setq magit-commit-show-diff nil
+	magit-revert-buffers 1))
 
 
 (use-package caps-lock
