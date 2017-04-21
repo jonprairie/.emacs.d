@@ -115,3 +115,18 @@ then it takes a second \\[keyboard-quit] to abort the minibuffer."
 
 (provide 'ensure-package-installed)
 (provide 'evil-def-multi-keys)
+
+(defun cobol-find-paragraph-def (paragraph-name)
+  "search for definition of paragraph and, if found, scroll line to top of page"
+  (let* ((search-regexp (concat "[ 0-9]\\{6\\} *" paragraph-name))
+         (regex-found (re-search-forward search-regexp nil t)))
+    (if regex-found
+	(evil-scroll-line-to-top nil))))
+
+(defun cobol-find-paragraph-def-at-point ()
+  "search for the definition of paragraph at point"
+  (interactive)
+  (evil-set-marker ?')
+  (let* ((paragraph-name (thing-at-point 'word 'no-properties)))
+	 (message "%s" paragraph-name)
+	 (cobol-find-paragraph-def paragraph-name)))

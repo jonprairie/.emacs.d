@@ -155,7 +155,11 @@
 (add-hook 'rexx-mode-hook (lambda () (toggle-truncate-lines)))
 
 
-;;; configure evil mode
+(use-package key-chord
+  :ensure t
+  :config
+  (key-chord-mode 1) 
+  (setq key-chord-two-keys-delay 0.075))
 
 
 (use-package evil
@@ -259,6 +263,7 @@
   (evil-leader/set-key
     "mx" 'helm-M-x
     "g" 'magit-status                              
+    "d" 'dired
     "j" 'evil-window-down                          
     "k" 'evil-window-up                            
     "h" 'evil-window-left                          
@@ -286,6 +291,9 @@
   (evil-def-multi-keys-list
    "n"
    (((kbd "U") 'undo-tree-redo)))
+
+  (evil-leader/set-key-for-mode 'cobol-mode
+    "f" 'cobol-find-paragraph-def-at-point)
 
   ;; look into setting "jk" to these values
   (define-key evil-normal-state-map [escape] 'keyboard-quit)
@@ -555,13 +563,6 @@ this is a pretty hacky solution, I should probably clean it up a bit."
 ;;       (abs offset))))
 
 
-(use-package key-chord
-  :ensure t
-  :config
-  (key-chord-mode 1) 
-  (setq key-chord-two-keys-delay 0.075))
-
-
 (use-package iedit
   :defer t)
 
@@ -571,7 +572,14 @@ this is a pretty hacky solution, I should probably clean it up a bit."
   :defer t
   :config
   (setq magit-commit-show-diff nil
-	magit-revert-buffers 1))
+	magit-revert-buffers 1
+	magit-refresh-status-buffer nil
+	magit-diff-highlight-indentation nil
+	magit-diff-highlight-trailing nil
+	magit-diff-paint-whitespace nil
+	magit-diff-highlight-hunk-body nil
+	magit-diff-refine-hunk nil
+	vc-handled-backends nil))
 
 
 (use-package caps-lock
@@ -601,19 +609,19 @@ this is a pretty hacky solution, I should probably clean it up a bit."
   (diminish 'auto-revert-mode ""))
 (add-hook 'auto-revert-mode-hook 'sk/diminish-auto-revert)
 
-					;(defmacro rename-major-mode (package-name mode new-name)
-					;  "Renames a major mode."
-					;  `(eval-after-load ,package-name
-					;     '(defadvice ,mode (after rename-modeline activate)
-					;	(setq mode-name ,new-name))))
+;;(defmacro rename-major-mode (package-name mode new-name)
+;;  "Renames a major mode."
+;;  `(eval-after-load ,package-name
+;;     '(defadvice ,mode (after rename-modeline activate)
+;;	(setq mode-name ,new-name))))
 
 
-					;(rename-major-mode "python" python-mode "π")
-					;(rename-major-mode "shell" shell-mode "🐚")
-					;(rename-major-mode "org" org-mode "📓") 
-					;(rename-major-mode "org-agenda" org-agenda-mode "📅")
-					;(rename-major-mode "lisp" lisp-mode "λ")
-					;(rename-major-mode "cobol" cobol-mode "ಠ_ಠ")
+;;(rename-major-mode "python" python-mode "π")
+;;(rename-major-mode "shell" shell-mode "🐚")
+;;(rename-major-mode "org" org-mode "📓") 
+;;(rename-major-mode "org-agenda" org-agenda-mode "📅")
+;;(rename-major-mode "lisp" lisp-mode "λ")
+;;(rename-major-mode "cobol" cobol-mode "ಠ_ಠ")
 
 
 (add-hook 'python-mode-hook (lambda () (setq mode-name "π")))
@@ -655,20 +663,20 @@ this is a pretty hacky solution, I should probably clean it up a bit."
 ;; (require 'jabber)
 ;; (setq jabber-invalid-certificate-servers '("cup1.aoins.com"))
 (put 'narrow-to-region 'disabled nil)
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(custom-safe-themes
-   (quote
-    ("962dacd99e5a99801ca7257f25be7be0cebc333ad07be97efd6ff59755e6148f" default)))
- '(package-selected-packages
-   (quote
-    (ov evil-commentary airline-themes elpy esup zone-matrix yasnippet use-package relative-line-numbers powerline magit key-chord jabber iedit helm-projectile flycheck fill-column-indicator evil-visual-mark-mode evil-tabs evil-surround evil-org evil-indent-plus evil-escape company caps-lock))))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
+;;(custom-set-variables
+;; ;; custom-set-variables was added by Custom.
+;; ;; If you edit it by hand, you could mess it up, so be careful.
+;; ;; Your init file should contain only one such instance.
+;; ;; If there is more than one, they won't work right.
+;; '(custom-safe-themes
+;;   (quote
+;;    ("962dacd99e5a99801ca7257f25be7be0cebc333ad07be97efd6ff59755e6148f" default)))
+;; '(package-selected-packages
+;;   (quote
+;;    (ov evil-commentary airline-themes elpy esup zone-matrix use-package relative-line-numbers powerline magit key-chord jabber iedit helm-projectile flycheck fill-column-indicator evil-visual-mark-mode evil-tabs evil-surround evil-org evil-indent-plus evil-escape company caps-lock))))
+;;(custom-set-faces
+;; ;; custom-set-faces was added by Custom.
+;; ;; If you edit it by hand, you could mess it up, so be careful.
+;; ;; Your init file should contain only one such instance.
+;; ;; If there is more than one, they won't work right.
+;; )

@@ -3155,8 +3155,8 @@ start of area A, if fixed-format)."
   ;; Auto complete mode
   (set (make-local-variable 'ac-ignore-case) t)
 
-					;(add-hook 'cobol-mode-hook
-					;          #'(lambda () (local-set-key (kbd "RET") #'newline-and-indent)))
+  ;;(add-hook 'cobol-mode-hook
+  ;;          #'(lambda () (local-set-key (kbd "RET") #'newline-and-indent)))
   (add-hook 'cobol-mode-hook
 	    (local-set-key (kbd "RET") #'evil-ret-and-indent))
 
