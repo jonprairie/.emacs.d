@@ -644,6 +644,33 @@ this is a pretty hacky solution, I should probably clean it up a bit."
       " ;sl" #'js2r-forward-slurp
       " ;ba" #'js2r-forward-barf
       " ;k" #'js2r-kill)
+    (evil-define-minor-mode-key 'visual 'js2-refactor-mode 
+      " ;ee" #'js2r-expand-node-at-point
+      " ;cc" #'js2r-contract-node-at-point
+      " ;wi" #'js2r-wrap-buffer-in-iife
+      " ;ig" #'js2r-inject-global-in-iife
+      " ;ev" #'js2r-extract-var
+      " ;iv" #'js2r-inline-var
+      " ;rv" #'js2r-rename-var
+      " ;vt" #'js2r-var-to-this
+      " ;ag" #'js2r-add-to-globals-annotation
+      " ;sv" #'js2r-split-var-declaration
+      " ;ss" #'js2r-split-string
+      " ;ef" #'js2r-extract-function
+      " ;em" #'js2r-extract-method
+      " ;ip" #'js2r-introduce-parameter
+      " ;lp" #'js2r-localize-parameter
+      " ;tf" #'js2r-toggle-function-expression-and-declaration
+      " ;ta" #'js2r-toggle-arrow-function-and-expression
+      " ;ao" #'js2r-arguments-to-object
+      " ;uw" #'js2r-unwrap
+      " ;wl" #'js2r-wrap-in-for-loop
+      " ;3i" #'js2r-ternary-to-if
+      " ;lt" #'js2r-log-this
+      " ;dt" #'js2r-debug-this
+      " ;sl" #'js2r-forward-slurp
+      " ;ba" #'js2r-forward-barf
+      " ;k" #'js2r-kill)
     (define-key js2-refactor-mode-map (kbd "<C-S-down>") #'js2r-move-line-down)
     (define-key js2-refactor-mode-map (kbd "<C-S-up>") #'js2r-move-line-up))
   ;;(js2r-add-keybindings-with-prefix "C-k"))
