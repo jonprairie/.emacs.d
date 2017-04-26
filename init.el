@@ -6,7 +6,7 @@
 ;;; emacs preferences
 
 
-(setq debug-on-error t)
+(setq debug-on-error nil)
 
 (set-face-attribute 'default nil :family "Consolas")
 (set-fontset-font t 'unicode (font-spec :name "Segoe UI Symbol") nil 'append)
@@ -119,8 +119,19 @@
 ;;'yasnippet
 ;;'jabber
 
+;;; load utilities
 
-;;; configure cobol and rexx modes
+
+(use-package dash
+  :ensure t
+  :config
+  (use-package dash-functional
+    :ensure t)
+  (eval-after-load 'dash '(dash-enable-font-lock)))
+
+
+(use-package s
+  :ensure t)
 
 
 ;; load cobol-mode
@@ -245,6 +256,7 @@
    "env"
    (((kbd "]") 'evil-next-line-and-scroll-to-top)
     ((kbd "[") 'evil-prev-line-and-scroll-to-top)
+    ;;((kbd "r") nil)
     ((kbd "s") nil)
     ((kbd "sj") 'evil-scroll-down)
     ((kbd "sJ") 'evil-goto-line)
@@ -349,9 +361,6 @@ a bit hacky, but this substantially improves performance."
 ;;   (add-hook 'magit-mode-hook 'turn-off-evil-snipe-override-mode))
 
 
-;;; configure helm
-
-
 (use-package helm
   :ensure t
   :diminish helm-mode
@@ -371,9 +380,6 @@ a bit hacky, but this substantially improves performance."
 	helm-echo-input-in-header-line        t)
 
   (helm-mode 1))
-
-
-;;; configure projectile
 
 
 (use-package projectile
@@ -425,9 +431,6 @@ a bit hacky, but this substantially improves performance."
 		'(:eval (format " [%s]" (projectile-project-name)))))
 
 
-;;; configure org mode
-
-
 (use-package org
   :ensure t
   :defer  t
@@ -477,9 +480,6 @@ a bit hacky, but this substantially improves performance."
   (setq org-agenda-restore-windows-after-quit t))
 
 
-;;; configure miscellaneous packages
-
-
 ;;(use-package powerline
 ;;  :ensure t
 ;;  :config
@@ -504,11 +504,11 @@ a bit hacky, but this substantially improves performance."
 ;;  (load-theme 'airline-light t))
 
 
-(use-package fill-column-indicator
-  :ensure t
-  :defer 15
-  :config
-  (setq-default fill-column 72))
+;;(use-package fill-column-indicator
+;;  :ensure t
+;;  :defer 15
+;;  :config
+;;  (setq-default fill-column 72))
 
 
 (defun custom-company-complete-number (n)
@@ -598,8 +598,66 @@ this is a pretty hacky solution, I should probably clean it up a bit."
   :config
   (elpy-enable))
 
+
 (use-package ov
   :ensure t)
+
+
+(use-package emmet-mode
+  :ensure t
+  :config
+  (add-hook 'sgml-mode-hook 'emmet-mode)
+  (add-hook 'css-mode-hook 'emmet-mode))
+
+
+(use-package js2-mode
+  :mode "\\.js\\'"
+  :init
+  (use-package js2-refactor
+    :ensure t
+    :config
+    (add-hook 'js2-mode-hook #'js2-refactor-mode)
+    (evil-define-minor-mode-key 'normal 'js2-refactor-mode 
+      " ;ee" #'js2r-expand-node-at-point
+      " ;cc" #'js2r-contract-node-at-point
+      " ;wi" #'js2r-wrap-buffer-in-iife
+      " ;ig" #'js2r-inject-global-in-iife
+      " ;ev" #'js2r-extract-var
+      " ;iv" #'js2r-inline-var
+      " ;rv" #'js2r-rename-var
+      " ;vt" #'js2r-var-to-this
+      " ;ag" #'js2r-add-to-globals-annotation
+      " ;sv" #'js2r-split-var-declaration
+      " ;ss" #'js2r-split-string
+      " ;ef" #'js2r-extract-function
+      " ;em" #'js2r-extract-method
+      " ;ip" #'js2r-introduce-parameter
+      " ;lp" #'js2r-localize-parameter
+      " ;tf" #'js2r-toggle-function-expression-and-declaration
+      " ;ta" #'js2r-toggle-arrow-function-and-expression
+      " ;ao" #'js2r-arguments-to-object
+      " ;uw" #'js2r-unwrap
+      " ;wl" #'js2r-wrap-in-for-loop
+      " ;3i" #'js2r-ternary-to-if
+      " ;lt" #'js2r-log-this
+      " ;dt" #'js2r-debug-this
+      " ;sl" #'js2r-forward-slurp
+      " ;ba" #'js2r-forward-barf
+      " ;k" #'js2r-kill)
+    (define-key js2-refactor-mode-map (kbd "<C-S-down>") #'js2r-move-line-down)
+    (define-key js2-refactor-mode-map (kbd "<C-S-up>") #'js2r-move-line-up))
+  ;;(js2r-add-keybindings-with-prefix "C-k"))
+  (use-package skewer-mode
+    :ensure t
+    :config
+    (add-hook 'js2-mode-hook 'skewer-mode)
+    (add-hook 'css-mode-hook 'skewer-css-mode)
+    (add-hook 'html-mode-hook 'skewer-html-mode))
+  :ensure t
+  :config
+  (setq js2-include-browser-externs t)
+  (setq js2-include-node-externs t))
+
 
 ;; Diminish extraneous info in the modeline
 (diminish 'abbrev-mode)
@@ -662,21 +720,6 @@ this is a pretty hacky solution, I should probably clean it up a bit."
 
 ;; (require 'jabber)
 ;; (setq jabber-invalid-certificate-servers '("cup1.aoins.com"))
+
 (put 'narrow-to-region 'disabled nil)
-;;(custom-set-variables
-;; ;; custom-set-variables was added by Custom.
-;; ;; If you edit it by hand, you could mess it up, so be careful.
-;; ;; Your init file should contain only one such instance.
-;; ;; If there is more than one, they won't work right.
-;; '(custom-safe-themes
-;;   (quote
-;;    ("962dacd99e5a99801ca7257f25be7be0cebc333ad07be97efd6ff59755e6148f" default)))
-;; '(package-selected-packages
-;;   (quote
-;;    (ov evil-commentary airline-themes elpy esup zone-matrix use-package relative-line-numbers powerline magit key-chord jabber iedit helm-projectile flycheck fill-column-indicator evil-visual-mark-mode evil-tabs evil-surround evil-org evil-indent-plus evil-escape company caps-lock))))
-;;(custom-set-faces
-;; ;; custom-set-faces was added by Custom.
-;; ;; If you edit it by hand, you could mess it up, so be careful.
-;; ;; Your init file should contain only one such instance.
-;; ;; If there is more than one, they won't work right.
-;; )
+(setq custom-file "~/.emacs.d/cust-vars.el")
