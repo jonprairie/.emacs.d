@@ -5,6 +5,7 @@
 !nsync/
 !cust-funcs/
 !simple-ftp/
+!plugins/
 !woit/
 !init.el
 !.gitignore

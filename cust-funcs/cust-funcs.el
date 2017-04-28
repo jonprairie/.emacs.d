@@ -20,7 +20,7 @@ b. the range from bound-1 to bound-2 (not including bound-2), if bound-2 is non-
 	(end (if (null bound-2) bound-1 (max bound-1 bound-2))))
     (cl-loop for n from start to (1- end) collecting n)))
 
-  
+
 (defun ensure-package-installed (&rest packages)
   "Assure every package is installed, ask for installation if it's not.
           
@@ -116,9 +116,26 @@ then it takes a second \\[keyboard-quit] to abort the minibuffer."
 (provide 'ensure-package-installed)
 (provide 'evil-def-multi-keys)
 
+(defun extract-pattern-from-line (regex &optional group-num)
+  "extract the group-num group from the given regex when applied to the current line. returns nil if regex does not match current line."
+  (let ((group-num (or group-num 1)))
+    (save-excursion
+      (save-restriction
+	(let ((beg (progn
+		     (beginning-of-line)
+		     (point)))
+	      (end (progn
+		     (end-of-line)
+		     (point))))
+	  (evil-with-restriction beg end
+	    (beginning-of-line)
+	    (when (looking-at-p regex)
+	      (re-search-forward regex)
+	      (match-string-no-properties group-num))))))))
+
 (defun cobol-find-paragraph-def (paragraph-name)
   "search for definition of paragraph and, if found, scroll line to top of page"
-  (let* ((search-regexp (concat "[ 0-9]\\{6\\} *" paragraph-name))
+  (let* ((search-regexp (concat "[ 0-9]\\{6\\} *" paragraph-name " *\."))
          (regex-found (re-search-forward search-regexp nil t)))
     (if regex-found
 	(evil-scroll-line-to-top nil))))
@@ -127,6 +144,20 @@ then it takes a second \\[keyboard-quit] to abort the minibuffer."
   "search for the definition of paragraph at point"
   (interactive)
   (evil-set-marker ?')
-  (let* ((paragraph-name (thing-at-point 'word 'no-properties)))
-	 (message "%s" paragraph-name)
-	 (cobol-find-paragraph-def paragraph-name)))
+  (let ((paragraph-name
+	 (s-trim (extract-pattern-from-line "^[ 0-9]\\{6\\} *PERFORM *\\(.*\\) *THRU"))))
+    (message "'%s'" paragraph-name)
+    (cobol-find-paragraph-def paragraph-name)))
+
+(defun cobol-find-paragraph-callee-at-point ()
+  "search for callees of paragraph name from current line"
+  (interactive)
+  (evil-set-marker ?')
+  (let* ((paragraph-name
+	  (s-trim
+	   (or (extract-pattern-from-line "^[ 0-9]\\{6\\} *PERFORM *\\(.*\\) *THRU")
+	       (extract-pattern-from-line "^[ 0-9]\\{6\\} *\\(.*\\)\\."))))
+	 (paragraph-regex (concat "^.*[ 0-9]\\{6\\} *PERFORM *" paragraph-name ".*")))
+    (message "%s" paragraph-name)
+    (evil-search paragraph-regex t t)))
+

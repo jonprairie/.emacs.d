@@ -42,6 +42,8 @@
 (require 'zone)
 (zone-when-idle 240)
 
+(fset 'yes-or-no-p 'y-or-n-p)
+
 
 ;;; mode line customization
 
@@ -85,6 +87,15 @@
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))
+
+(use-package auto-compile
+  :ensure t
+  :config
+  (setq auto-compile-display-buffer nil)
+  (setq auto-compile-mode-line-counter t)
+  (setq load-prefer-newer t)
+  (auto-compile-on-load-mode)
+  (auto-compile-on-save-mode))
 
 (eval-when-compile
   (require 'use-package))
@@ -263,7 +274,7 @@
     ((kbd "sk") 'evil-scroll-up)
     ((kbd "sK") 'evil-goto-first-line)
     ((kbd "sh") 'evil-scroll-left)
-    ((kbd "sl") 'evil-scroll-right)))
+    ((kbd "sl") 'evil-scroll-right))) 
 
   (key-chord-def-list
    "ievmourp"
@@ -285,7 +296,8 @@
     "p" 'helm-projectile-find-file-in-known-projects 
     "o" 'helm-buffers-list                           
     "v" 'helm-show-kill-ring                         
-    "c" 'helm-comint-input-ring                      
+    ;;"c" 'helm-comint-input-ring                      
+    "c" 'org-capture
     "i" #'(lambda ()
 	    (interactive)
 	    (save-mark-and-excursion
@@ -294,18 +306,23 @@
     "T" 'eshell
     "w" 'save-buffer
     "qq" #'(lambda ()
-	     (interactive)
-	     (cd "c:/users/e018462/appdata/Roaming"))
+    	     (interactive)
+    	     (cd "c:/users/e018462/appdata/Roaming"))
     "qw" #'(lambda ()
-	     (interactive)
-	     (cd "c:/Users/e018462/Documents/src")))
+    	     (interactive)
+    	     (cd "c:/Users/e018462/Documents/src")))
 
   (evil-def-multi-keys-list
    "n"
    (((kbd "U") 'undo-tree-redo)))
 
   (evil-leader/set-key-for-mode 'cobol-mode
-    "f" 'cobol-find-paragraph-def-at-point)
+    "f" 'cobol-find-paragraph-def-at-point
+    "c" 'cobol-find-paragraph-callee-at-point)
+
+  (evil-leader/set-key-for-mode 'org-mode
+    "q" nil
+    "q" 'org-set-tags-command)
 
   ;; look into setting "jk" to these values
   (define-key evil-normal-state-map [escape] 'keyboard-quit)
@@ -377,9 +394,14 @@ a bit hacky, but this substantially improves performance."
 	helm-recentf-fuzzy-match              t
 	helm-semantic-fuzzy-match             t
 	helm-split-window-in-side-p           t
-	helm-echo-input-in-header-line        t)
-
-  (helm-mode 1))
+	helm-echo-input-in-header-line        t
+	helm-candidate-number-limit          25
+	helm-ff-candidate-number-limit       25
+	helm-ff-skip-boring-files             t)
+  (helm-mode 1)
+  (add-to-list 'helm-boring-file-regexp-list "node_modules")
+  (add-to-list 'helm-boring-file-regexp-list "__pycache__")
+  (add-to-list 'helm-boring-file-regexp-list "\\.min\\.js$"))
 
 
 (use-package projectile
@@ -420,7 +442,7 @@ a bit hacky, but this substantially improves performance."
                   "*.zip"
 		  "*.*~"
 		  "*.swp"
-		  "*.min.*"
+		  "*.min.js"
                   )
 		projectile-globally-ignored-files))
   (projectile-global-mode)
@@ -435,49 +457,106 @@ a bit hacky, but this substantially improves performance."
   :ensure t
   :defer  t
   :config
-  (setq
-   org-agenda-files
-   '("c:/users/e018462/documents/src/todo.org"))
+
+  (let ((main-org-file "c:/users/e018462/documents/src/todo.org"))
+    (setq org-agenda-files (list main-org-file))
+    (setq org-default-notes-file main-org-file)
+    (setq org-capture-templates
+	  '(("t" "Todo" entry (file+headline main-org-file "Tasks")
+	     "* TODO %?")
+	    ("l" "Listing" entry (file+headline main-org-file "Listings")
+	     "* TODO opp%^{prompt}%? :opp%\\1:\n  %c")
+	    ("i" "Idea" entry (file+headline main-org-file "Half-Baked Ideas")
+	     "* TODO %?"))))
+
+
   
   (add-hook 'org-mode-hook
 	    (lambda()
 	      (relative-line-numbers-mode t)
 	      (org-indent-mode t)))
-  
-  (add-to-list
-   'load-path
-   "~/.emacs.d/plugins/evil-org-mode")
 
+  (add-hook 'org-agenda-mode-hook
+	    (lambda ()
+	      (relative-line-numbers-mode t)))
+  
   ;; syntax highlighting for code blocks
   (setq org-src-fontify-natively t)
 
-  (use-package evil-org :ensure t)
-  
+  (setq org-agenda-custom-commands
+	'(("s" "Week-agenda with TOP-3 tags"
+	   ((tags-todo "\@top3")
+	    (todo "WAITING")
+	    (todo "IN-PROGRESS")
+	    (agenda "" ((org-agenda-ndays 2)))
+	    (todo "TODO" 
+		  ((org-agenda-skip-function
+		    '(org-agenda-skip-if nil '(scheduled deadline))))))
+	   ((org-agenda-skip-function
+	     '(org-agenda-skip-entry-if 'todo 'done))))))
+
+  (setq org-use-fast-todo-selection t)
+
   (setq org-todo-keywords
 	'((sequence
-	   "TODO"
-	   "IN-PROGRESS"
-	   "WAITING"
+	   "TODO(t)"
+	   "IN-PROGRESS(p)"
+	   "WAITING(w)"
 	   "|"
-	   "DONE"
-	   "CANCELLED")))
-  
+	   "DONE(d)"
+	   "CANCELLED(c)")))
+
   (setq org-tag-alist
 	'((:startgroup . nil)
-	  ("@work" .?w)
+	  ("@top3" . ?t)
+	  ("@work" . ?w)
 	  ("@home" . ?h)
 	  ("@errand" . ?e)
 	  (:endgroup . nil)
 	  ("@phone" . ?p)
 	  ("@laptop" . ?l)))
-  
+
   (setq org-agenda-text-search-extra-files '(agenda-archives))
   (setq org-enforce-todo-dependencies t)
   (setq org-log-done (quote time))
   (setq org-log-redeadline (quote time))
   (setq org-log-reschedule (quote time))
   (setq org-agenda-window-setup 'current-window)
-  (setq org-agenda-restore-windows-after-quit t))
+  (setq org-agenda-restore-windows-after-quit t)
+
+  ;;(add-to-list
+  ;; 'load-path
+  ;; "~/.emacs.d/plugins/evil-org-mode")
+
+  (use-package evil-org
+    :load-path "plugins/evil-org-mode/"
+    :defer t
+    :after org)
+
+  (evil-define-key 'emacs org-agenda-keymap
+    (kbd "ss") 'org-save-all-org-buffers
+    (kbd "q") 'org-agenda-set-tags
+    "j" 'org-agenda-next-item
+    "k" 'org-agenda-previous-item
+    "c" 'org-capture
+    " " nil
+    " j" 'evil-window-down                                                    
+    " k" 'evil-window-up                                                      
+    " h" 'evil-window-left                                                    
+    " l" 'evil-window-right))
+
+;;(evil-define-key 'emacs org-agenda-keymap (kbd "q") 'org-agenda-set-tags)
+
+;;(define-key org-agenda-mode-map " " nil)
+
+;;(define-key org-agenda-mode-map "j" 'org-agenda-next-item)
+;;(define-key org-agenda-mode-map "k" 'org-agenda-previous-item)
+
+;;(evil-define-key 'emacs org-agenda-mode-map
+;;  " j" 'evil-window-down                          
+;;  " k" 'evil-window-up                            
+;;  " h" 'evil-window-left                          
+;;  " l" 'evil-window-right))
 
 
 ;;(use-package powerline
@@ -526,10 +605,10 @@ this is a pretty hacky solution, I should probably clean it up a bit."
   :init (add-hook 'after-init-hook 'global-company-mode)
   :config 
   (setq company-idle-delay              .2
-  	company-minimum-prefix-length   2
-  	company-show-numbers            t
-  	company-tooltip-limit           20
-  	company-dabbrev-downcase        nil)
+	company-minimum-prefix-length   2
+	company-show-numbers            t
+	company-tooltip-limit           20
+	company-dabbrev-downcase        nil)
   (key-chord-def-list
    "i"
    (("11" '(lambda () (interactive) (custom-company-complete-number 1)))
