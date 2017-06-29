@@ -777,6 +777,10 @@ this is a pretty hacky solution, I should probably clean it up a bit."
   (setq js2-include-browser-externs t)
   (setq js2-include-node-externs t))
 
+(use-package markdown-mode
+  :ensure t
+  :mode ("\\.\\(m\\(ark\\)?down\\|md\\)$" . markdown-mode))
+
 (use-package woit
   :load-path "plugins/woit/")
 
