@@ -2256,6 +2256,12 @@ DECLARATIVES.")
 (defconst cobol--ends-with-period-re
   (cobol--with-opt-whitespace-line ".*\\.[ 	]*[0-9]\\{0,8\\}[ 	]*$"))
 
+(defconst cobol--paragraph-def-with-exit-re
+  "[ 	0-9]\\{0,7\\}[0-9]\\{2,\\}[a-zA-Z0-9\\-]*\\.[ 	]*\\([0-9]\\{2,\\}-EXIT.\\)?\\([ 	]*EXIT\\.\\)?[ 	]*[0-9]\\{0,8\\}[ 	]*$")
+
+(defconst cobol--paragraph-def-re
+  "[ 	0-9]\\{0,7\\}[0-9]\\{2,\\}[a-zA-Z0-9\\-]*\\.[ 	]*[0-9]\\{0,8\\}[ 	]*$")
+
 (defun cobol--ends-with-period ()
   (looking-at-p cobol--ends-with-period-re))
 
@@ -2690,6 +2696,34 @@ value is non-nil, return the cdr."
 			((looking-at line-re)
 			 (cons t (line-number-at-pos))))))))
 
+(defun cobol--jump-to-prev-paragraph ()
+  (interactive)
+  (let ((line-num (cobol--search-for-line-num cobol--paragraph-def-re :with-whitespace nil)))
+    (if line-num
+	(goto-line line-num)
+      (message "%s" "already at first paragraph"))))
+
+(defun cobol--jump-to-next-paragraph ()
+  (interactive)
+  (let ((line-num (cobol--search-for-line-num cobol--paragraph-def-re :with-whitespace nil :direction nil)))
+    (if line-num
+	(goto-line line-num)
+      (message "%s" "already at last paragraph"))))
+
+(defun cobol--jump-to-prev-paragraph-or-exit ()
+  (interactive)
+  (let ((line-num (cobol--search-for-line-num cobol--paragraph-def-with-exit-re :with-whitespace nil)))
+    (if line-num
+	(goto-line line-num)
+      (message "%s" "already at first paragraph"))))
+
+(defun cobol--jump-to-next-paragraph-or-exit ()
+  (interactive)
+  (let ((line-num (cobol--search-for-line-num cobol--paragraph-def-with-exit-re :with-whitespace nil :direction nil)))
+    (if line-num
+	(goto-line line-num)
+      (message "%s" "already at last paragraph"))))
+
 (defun cobol--last-statement-ends-with-period-p ()
   (save-excursion
     (let ((line-num (cobol--search-for-line-num cobol--verb-term-re)))
@@ -3116,12 +3150,132 @@ start of area A, if fixed-format)."
 ;;; Misc
 (defvar cobol-tab-width 4 "Width of a tab for `cobol-mode'.")
 
+(defun elvis (func arg)
+  "returns nil if arg is nil, otherwise calls (func arg)"
+  (if arg
+      (funcall func arg)
+    arg))
+
+;;; there should be the makings of a simple, regex-based jump-to-definition library here
+(defun cobol-find-paragraph-def (paragraph-name)
+  "search for definition of paragraph and, if found, scroll line to top of page"
+  (let* ((search-regexp (concat "[ 0-9]\\{6\\} *" paragraph-name " *\."))
+         (regex-found (or (re-search-forward search-regexp nil t)
+			  (re-search-backward search-regexp nil t))))
+    (if regex-found
+	(evil-scroll-line-to-top nil))
+    regex-found))
+
+(defun cobol-find-paragraph-def-at-point ()
+  "search for the definition of paragraph at point"
+  (interactive)
+  (start-new-code-branch)
+  (let ((paragraph-name
+	 (elvis #'s-trim (extract-pattern-from-line "^[ 0-9]\\{6\\} *PERFORM *\\(.*\\) *THRU"))))
+    (message "'%s'" paragraph-name)
+    (when paragraph-name
+      (cobol-find-paragraph-def paragraph-name))))
+
+(defun cobol-find-paragraph-callee-at-point ()
+  "search for callees of paragraph name from current line"
+  (interactive)
+  (start-new-code-branch)
+  (let* ((paragraph-name
+	  (s-trim
+	   (or (extract-pattern-from-line "^[ 0-9]\\{6\\} *PERFORM *\\(.*\\) *THRU")
+	       (extract-pattern-from-line "^[ 0-9]\\{6\\} *\\(.*\\)\\."))))
+	 (paragraph-regex (concat "^.*[ 0-9]\\{6\\} *PERFORM *" paragraph-name ".*")))
+    (message "%s" paragraph-name)
+    (evil-search paragraph-regex t t)))
+
+(defun cobol-jump-to-procedure-division ()
+  "scroll top of screen to procedure division statement."
+  (interactive)
+  (start-new-code-branch)
+  (let* ((proc-regex "^[ 0-9]\\{6\\} *PROCEDURE DIVISION\\.")
+	 (regex-found (or (re-search-forward proc-regex nil t)
+			  (re-search-backward proc-regex nil t))))
+    (message "%s" "PROCEDURE DIVISION")
+    (when regex-found
+      (evil-scroll-line-to-top nil))))
+
+(defun cobol-jump-to-data-division ()
+  "scroll top of screen to procedure division statement."
+  (interactive)
+  (start-new-code-branch)
+  (let* ((proc-regex "^[ 0-9]\\{6\\} *DATA DIVISION\\.")
+	 (regex-found (or (re-search-forward proc-regex nil t) 
+			  (re-search-backward proc-regex nil t))))
+    (message "%s" "DATA DIVISION")
+    (when regex-found
+      (evil-scroll-line-to-top nil))))
+
+(defun search-for-word-at-point-from-top ()
+  "grab word at point and perform an evil search on it"
+  (interactive)
+  (start-new-code-branch)
+  (let ((current-word (thing-at-point 'word t)))
+    (beginning-of-buffer)
+    (evil-search current-word t t)))
+
+(defun cobol-smart-goto-def ()
+  "try cobol-find-paragraph-def-at-point, if unsuccesful then call search-for-word-at-point-from-top"
+  (interactive)
+  (if (not (cobol-find-paragraph-def-at-point))
+      (search-for-word-at-point-from-top)))
+
+(defun set-code-stack (key val)
+  (unless (local-variable-p 'code-stack)
+    (make-local-variable 'code-stack))
+  (lax-plist-put code-stack key val))
+
+(defun get-code-stack (key)
+  (lax-plist-get code-stack key))
+
+(defun start-new-code-branch (&optional p)
+  (let* ((p (or p (point)))
+	 (backward-branch (get-code-stack :backward))
+	 (last-node (car backward-branch)))
+    (unless (and last-node
+		 (= p last-node))
+      (set-code-stack :backward (cons p backward-branch))
+      (set-code-stack :forward nil))))
+
+(defun move-along-code-branch (point going-forward)
+  (let* ((direction-key (if going-forward :forward :backward))
+ 	 (direction-branch (get-code-stack direction-key))
+	 (anti-direction-key (if (not going-forward) :forward :backward))
+	 (anti-direction-branch (get-code-stack anti-direction-key))
+	 (next-node (car direction-branch)))
+    (when next-node
+      (set-code-stack direction-key (cdr direction-branch))
+      (set-code-stack anti-direction-key (cons next-node anti-direction-branch)))
+    (if (not (and next-node (= next-node point)))
+	next-node
+      (move-along-code-branch point going-forward))))
+
+(defun code-branch-forward ()
+  (interactive)
+  (let ((move-to (move-along-code-branch (point) t)))
+    (if move-to
+	(goto-char move-to)
+      (message "%s" "already at top of stack"))))
+
+(defun code-branch-backward ()
+  (interactive)
+  (let ((move-to (move-along-code-branch (point) nil)))
+    (if move-to
+	(goto-char move-to)
+      (message "%s" "already at bottom of stack"))))
+
+
 ;;;###autoload
 (define-derived-mode cobol-mode prog-mode "COBOL" ()
   "COBOL mode is a major mode for handling COBOL files."
   :group 'cobol
 
   (set (make-local-variable 'font-lock-defaults) cobol-font-lock-defaults)
+  (set (make-local-variable 'code-stack) (list :forward nil :backward nil))
 
   (when cobol-tab-width
     (set (make-local-variable 'tab-width) cobol-tab-width))

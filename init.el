@@ -174,6 +174,7 @@
 
 ;; truncate lines in cobol and rexx modes
 (add-hook 'cobol-mode-hook (lambda () (toggle-truncate-lines)))
+
 (add-hook 'rexx-mode-hook (lambda () (toggle-truncate-lines)))
 
 
@@ -274,7 +275,9 @@
     ((kbd "sk") 'evil-scroll-up)
     ((kbd "sK") 'evil-goto-first-line)
     ((kbd "sh") 'evil-scroll-left)
-    ((kbd "sl") 'evil-scroll-right))) 
+    ((kbd "sl") 'evil-scroll-right)
+    ((kbd "sn") 'code-branch-forward)
+    ((kbd "sp") 'code-branch-backward)))
 
   (key-chord-def-list
    "ievmourp"
@@ -282,11 +285,11 @@
     ("Jk" 'evil-normal-state)
     ("jK" 'evil-normal-state)
     ("JK" 'evil-normal-state)))
-  
+
   (evil-leader/set-key
     "mx" 'helm-M-x
     "g" 'magit-status                              
-    "d" 'dired
+    "dr" 'dired
     "j" 'evil-window-down                          
     "k" 'evil-window-up                            
     "h" 'evil-window-left                          
@@ -306,19 +309,26 @@
     "T" 'eshell
     "w" 'save-buffer
     "qq" #'(lambda ()
-    	     (interactive)
-    	     (cd "c:/users/e018462/appdata/Roaming"))
+	     (interactive)
+	     (cd "c:/users/e018462/appdata/Roaming"))
     "qw" #'(lambda ()
-    	     (interactive)
-    	     (cd "c:/Users/e018462/Documents/src")))
+	     (interactive)
+	     (cd "c:/Users/e018462/Documents/src")))
 
   (evil-def-multi-keys-list
    "n"
    (((kbd "U") 'undo-tree-redo)))
 
   (evil-leader/set-key-for-mode 'cobol-mode
-    "f" 'cobol-find-paragraph-def-at-point
-    "c" 'cobol-find-paragraph-callee-at-point)
+    "f" 'cobol-smart-goto-def
+    "F" 'cobol-find-paragraph-callee-at-point
+    "dp" 'cobol-jump-to-procedure-division
+    "dd" 'cobol-jump-to-data-division
+    " " nil
+    "[" 'cobol--jump-to-prev-paragraph-or-exit
+    "]" 'cobol--jump-to-next-paragraph-or-exit
+    "{" 'cobol--jump-to-prev-paragraph
+    "}" 'cobol--jump-to-next-paragraph)
 
   (evil-leader/set-key-for-mode 'org-mode
     "q" nil

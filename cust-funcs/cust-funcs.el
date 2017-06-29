@@ -116,7 +116,7 @@ then it takes a second \\[keyboard-quit] to abort the minibuffer."
 (provide 'ensure-package-installed)
 (provide 'evil-def-multi-keys)
 
-(defun extract-pattern-from-line (regex &optional group-num)
+(defun extract-pattern-from-line (regex &optional group-num with-properties)
   "extract the group-num group from the given regex when applied to the current line. returns nil if regex does not match current line."
   (let ((group-num (or group-num 1)))
     (save-excursion
@@ -131,33 +131,7 @@ then it takes a second \\[keyboard-quit] to abort the minibuffer."
 	    (beginning-of-line)
 	    (when (looking-at-p regex)
 	      (re-search-forward regex)
-	      (match-string-no-properties group-num))))))))
-
-(defun cobol-find-paragraph-def (paragraph-name)
-  "search for definition of paragraph and, if found, scroll line to top of page"
-  (let* ((search-regexp (concat "[ 0-9]\\{6\\} *" paragraph-name " *\."))
-         (regex-found (re-search-forward search-regexp nil t)))
-    (if regex-found
-	(evil-scroll-line-to-top nil))))
-
-(defun cobol-find-paragraph-def-at-point ()
-  "search for the definition of paragraph at point"
-  (interactive)
-  (evil-set-marker ?')
-  (let ((paragraph-name
-	 (s-trim (extract-pattern-from-line "^[ 0-9]\\{6\\} *PERFORM *\\(.*\\) *THRU"))))
-    (message "'%s'" paragraph-name)
-    (cobol-find-paragraph-def paragraph-name)))
-
-(defun cobol-find-paragraph-callee-at-point ()
-  "search for callees of paragraph name from current line"
-  (interactive)
-  (evil-set-marker ?')
-  (let* ((paragraph-name
-	  (s-trim
-	   (or (extract-pattern-from-line "^[ 0-9]\\{6\\} *PERFORM *\\(.*\\) *THRU")
-	       (extract-pattern-from-line "^[ 0-9]\\{6\\} *\\(.*\\)\\."))))
-	 (paragraph-regex (concat "^.*[ 0-9]\\{6\\} *PERFORM *" paragraph-name ".*")))
-    (message "%s" paragraph-name)
-    (evil-search paragraph-regex t t)))
+	      (if with-properties
+		  (match-string group-num)
+		(match-string-no-properties group-num)))))))))
 
