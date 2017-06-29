@@ -466,20 +466,20 @@ a bit hacky, but this substantially improves performance."
 (use-package org
   :ensure t
   :defer  t
+  :diminish org-indent-mode
   :config
-
-  (let ((main-org-file "c:/users/e018462/documents/src/todo.org"))
+  (let ((main-org-file "~/.emacs.d/todo/todo.org"))
     (setq org-agenda-files (list main-org-file))
     (setq org-default-notes-file main-org-file)
     (setq org-capture-templates
-	  '(("t" "Todo" entry (file+headline main-org-file "Tasks")
+	  '(("i" "Idea" entry (file+headline main-org-file "Half-Baked Ideas")
 	     "* TODO %?")
+	    ("j" "Jira" entry (file+headline main-org-file "Jiras")
+	     "* TODO %^{prompt}%? :%\\1:\n  %c")
 	    ("l" "Listing" entry (file+headline main-org-file "Listings")
-	     "* TODO opp%^{prompt}%? :opp%\\1:\n  %c")
-	    ("i" "Idea" entry (file+headline main-org-file "Half-Baked Ideas")
+	     "* TODO opt%^{prompt}%? :opp%\\1:\n  %c")
+	    ("t" "Todo" entry (file+headline main-org-file "Tasks")
 	     "* TODO %?"))))
-
-
   
   (add-hook 'org-mode-hook
 	    (lambda()
@@ -501,7 +501,9 @@ a bit hacky, but this substantially improves performance."
 	    (agenda "" ((org-agenda-ndays 2)))
 	    (todo "TODO" 
 		  ((org-agenda-skip-function
-		    '(org-agenda-skip-if nil '(scheduled deadline))))))
+		    '(org-agenda-skip-if
+		      nil
+		      '(scheduled deadline regexp ":@top3:"))))))
 	   ((org-agenda-skip-function
 	     '(org-agenda-skip-entry-if 'todo 'done))))))
 
@@ -541,6 +543,7 @@ a bit hacky, but this substantially improves performance."
   (use-package evil-org
     :load-path "plugins/evil-org-mode/"
     :defer t
+    :diminish evil-org-mode
     :after org)
 
   (evil-define-key 'emacs org-agenda-keymap
