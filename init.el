@@ -6,6 +6,7 @@
 ;;; emacs preferences
 
 
+(setq debug-on-error t)
 (setq debug-on-error nil)
 
 (set-face-attribute 'default nil :family "Consolas")
@@ -219,6 +220,7 @@
 
   (use-package evil-commentary
     :ensure t
+    :diminish evil-commentary-mode
     :config
     (evil-commentary-mode))
 
@@ -245,7 +247,8 @@
 
   (evil-def-multi-keys-list
    "ienvmourp"
-   (((kbd "<f5>") 'evil-prev-buffer)
+   (((kbd "<f3>") 'kill-this-buffer)
+    ((kbd "<f5>") 'evil-prev-buffer)
     ((kbd "<f6>") 'evil-next-buffer)
     ((kbd "C-S-H") 'shrink-window-horizontally)
     ((kbd "C-S-L") 'enlarge-window-horizontally)
@@ -266,8 +269,9 @@
 
   (evil-def-multi-keys-list
    "env"
-   (((kbd "]") 'evil-next-line-and-scroll-to-top)
-    ((kbd "[") 'evil-prev-line-and-scroll-to-top)
+   (
+    ;;((kbd "]") 'evil-next-line-and-scroll-to-top)
+    ;;((kbd "[") 'evil-prev-line-and-scroll-to-top)
     ;;((kbd "r") nil)
     ((kbd "s") nil)
     ((kbd "sj") 'evil-scroll-down)
@@ -624,16 +628,16 @@ this is a pretty hacky solution, I should probably clean it up a bit."
 	company-dabbrev-downcase        nil)
   (key-chord-def-list
    "i"
-   (("11" '(lambda () (interactive) (custom-company-complete-number 1)))
-    ("22" '(lambda () (interactive) (custom-company-complete-number 2)))
-    ("33" '(lambda () (interactive) (custom-company-complete-number 3)))
-    ("44" '(lambda () (interactive) (custom-company-complete-number 4)))
-    ("55" '(lambda () (interactive) (custom-company-complete-number 5)))
-    ("66" '(lambda () (interactive) (custom-company-complete-number 6)))
-    ("77" '(lambda () (interactive) (custom-company-complete-number 7)))
-    ("88" '(lambda () (interactive) (custom-company-complete-number 8)))
-    ("99" '(lambda () (interactive) (custom-company-complete-number 9)))
-    ("00" '(lambda () (interactive) (custom-company-complete-number 10))))))
+   ((" 1" '(lambda () (interactive) (custom-company-complete-number 1)))
+    (" 2" '(lambda () (interactive) (custom-company-complete-number 2)))
+    (" 3" '(lambda () (interactive) (custom-company-complete-number 3)))
+    (" 4" '(lambda () (interactive) (custom-company-complete-number 4)))
+    (" 5" '(lambda () (interactive) (custom-company-complete-number 5)))
+    (" 6" '(lambda () (interactive) (custom-company-complete-number 6)))
+    (" 7" '(lambda () (interactive) (custom-company-complete-number 7)))
+    (" 8" '(lambda () (interactive) (custom-company-complete-number 8)))
+    (" 9" '(lambda () (interactive) (custom-company-complete-number 9)))
+    (" 0" '(lambda () (interactive) (custom-company-complete-number 10))))))
 
 
 (use-package relative-line-numbers
