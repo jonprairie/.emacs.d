@@ -65,3 +65,5 @@
 	      (evil-previous-line))
 	  (ask-for-indent)
 	  (evil-insert-state t)))))
+
+(provide 'woit)
