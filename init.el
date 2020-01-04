@@ -9,7 +9,7 @@
 (setq debug-on-error t)
 (setq debug-on-error nil)
 
-(set-face-attribute 'default nil :family "Consolas")
+(set-face-attribute 'default nil :family "Monospace")
 (set-fontset-font t 'unicode (font-spec :name "Segoe UI Symbol") nil 'append)
 
 (menu-bar-mode -1)
@@ -41,7 +41,7 @@
 (global-set-key (kbd "M-x") 'helm-M-x)
 
 (require 'zone)
-(zone-when-idle 240)
+;;(zone-when-idle 240)
 
 (fset 'yes-or-no-p 'y-or-n-p)
 
@@ -100,7 +100,9 @@
 
 (eval-when-compile
   (require 'use-package))
-(require 'diminish)
+;;(require 'diminish)
+(use-package diminish
+  :ensure t)
 ;;(require 'bind-key)
 
 ;; load custom functions 
@@ -250,10 +252,14 @@
    (((kbd "<f3>") 'kill-this-buffer)
     ((kbd "<f5>") 'evil-prev-buffer)
     ((kbd "<f6>") 'evil-next-buffer)
-    ((kbd "C-S-H") 'shrink-window-horizontally)
-    ((kbd "C-S-L") 'enlarge-window-horizontally)
-    ((kbd "C-S-J") 'enlarge-window)
-    ((kbd "C-S-K") 'shrink-window)
+    ;;    ((kbd "C-S-H") 'shrink-window-horizontally)
+    ;;    ((kbd "C-S-L") 'enlarge-window-horizontally)
+    ;;    ((kbd "C-S-J") 'enlarge-window)
+    ;;    ((kbd "C-S-K") 'shrink-window)
+    ((kbd "C-S-H") 'evil-window-left)
+    ((kbd "C-S-L") 'evil-window-right)
+    ((kbd "C-S-J") 'evil-window-down)
+    ((kbd "C-S-K") 'evil-window-up)
     ((kbd "<f7>") 'evil-scroll-up)
     ((kbd "S-<f7>") 'evil-goto-first-line)
     ((kbd "<f8>") 'evil-scroll-down)
@@ -268,7 +274,7 @@
     ((kbd "M") 'evil-set-marker)))
 
   (evil-def-multi-keys-list
-   "env"
+   "nv"
    (
     ;;((kbd "]") 'evil-next-line-and-scroll-to-top)
     ;;((kbd "[") 'evil-prev-line-and-scroll-to-top)
@@ -294,10 +300,10 @@
     "mx" 'helm-M-x
     "g" 'magit-status                              
     "dr" 'dired
-    "j" 'evil-window-down                          
-    "k" 'evil-window-up                            
-    "h" 'evil-window-left                          
-    "l" 'evil-window-right                         
+    ;;"j" 'evil-window-down                          
+    ;;"k" 'evil-window-up                            
+    ;;"h" 'evil-window-left                          
+    ;;"l" 'evil-window-right                         
     "st" 'eval-buffer  
     "ev" 'eval-last-sexp
     "p" 'helm-projectile-find-file-in-known-projects 
@@ -363,23 +369,24 @@
      (if (equal major-mode 'cobol-mode)
 	 (caps-lock-mode t))))
 
-  (defun evil-vblock-perf-advice (old-func)
-    "turn off relative-line-number mode and/or line-number mode when repeating insert commands (like in visual block mode, for instance). then turn them back on, if they were on originally.
+  ;; (defun evil-vblock-perf-advice (old-func)
+  ;;    "turn off relative-line-number mode and/or line-number mode when repeating insert commands (like in visual block mode, for instance). then turn them back on, if they were on originally.
 
-a bit hacky, but this substantially improves performance."
-    (let ((old-relative-lines relative-line-numbers-mode)
-	  (old-lines line-number-mode))
-      (if old-relative-lines
-	  (relative-line-numbers-mode -1))
-      (if old-lines
-	  (line-number-mode -1))
-      (funcall old-func)
-      (if old-relative-lines
-	  (relative-line-numbers-mode 1))
-      (if old-lines
-	  (line-number-mode 1))))
+  ;;a bit hacky, but this substantially improves performance."
+  ;;    (let ((old-relative-lines relative-line-numbers-mode)
+  ;;	  (old-lines line-number-mode))
+  ;;      (if old-relative-lines
+  ;;	  (relative-line-numbers-mode -1))
+  ;;      (if old-lines
+  ;;	  (line-number-mode -1))
+  ;;      (funcall old-func)
+  ;;      (if old-relative-lines
+  ;;	  (relative-line-numbers-mode 1))
+  ;;      (if old-lines
+  ;;	  (line-number-mode 1))))
+  )
 
-  (advice-add 'evil-cleanup-insert-state :around 'evil-vblock-perf-advice))
+;;  (advice-add 'evil-cleanup-insert-state :around 'evil-vblock-perf-advice))
 
 ;; (use-package evil-snipe
 ;;   :diminish evil-snipe-local-mode
@@ -425,7 +432,6 @@ a bit hacky, but this substantially improves performance."
   (projectile-mode t)
   (use-package helm-projectile
     :ensure t
-    :defer t
     :after helm
     :config
     (helm-projectile-on))
@@ -466,6 +472,9 @@ a bit hacky, but this substantially improves performance."
   (setq-default projectile-mode-line
 		'(:eval (format " [%s]" (projectile-project-name)))))
 
+(add-hook 'after-change-major-mode-hook
+	  (lambda ()
+	    (linum-relative-mode t)))
 
 (use-package org
   :ensure t
@@ -487,12 +496,12 @@ a bit hacky, but this substantially improves performance."
   
   (add-hook 'org-mode-hook
 	    (lambda()
-	      (relative-line-numbers-mode t)
+	      (linum-relative-mode t)
 	      (org-indent-mode t)))
 
   (add-hook 'org-agenda-mode-hook
 	    (lambda ()
-	      (relative-line-numbers-mode t)))
+	      (linum-relative-mode t)))
   
   ;; syntax highlighting for code blocks
   (setq org-src-fontify-natively t)
@@ -557,10 +566,14 @@ a bit hacky, but this substantially improves performance."
     "k" 'org-agenda-previous-item
     "c" 'org-capture
     " " nil
-    " j" 'evil-window-down                                                    
-    " k" 'evil-window-up                                                      
-    " h" 'evil-window-left                                                    
-    " l" 'evil-window-right))
+    ((kbd "C-S-H") 'evil-window-left)
+    ((kbd "C-S-L") 'evil-window-right)
+    ((kbd "C-S-J") 'evil-window-down)
+    ((kbd "C-S-K") 'evil-window-up)))
+;;" j" 'evil-window-down                                                    
+;;" k" 'evil-window-up                                                      
+;;" h" 'evil-window-left                                                    
+;;" l" 'evil-window-right))
 
 ;;(evil-define-key 'emacs org-agenda-keymap (kbd "q") 'org-agenda-set-tags)
 
@@ -639,17 +652,19 @@ this is a pretty hacky solution, I should probably clean it up a bit."
     (" 9" '(lambda () (interactive) (custom-company-complete-number 9)))
     (" 0" '(lambda () (interactive) (custom-company-complete-number 10))))))
 
+(use-package linum-relative
+  :ensure t)
 
-(use-package relative-line-numbers
-  :ensure t
-  :config
-  (relative-line-numbers-mode t)
-  (setq relative-line-numbers-motion-function
-	'forward-visible-line)
-  (add-hook 'prog-mode-hook 'relative-line-numbers-mode t)
-  (add-hook 'prog-mode-hook 'line-number-mode t)
-  (add-hook 'rexx-mode-hook 'relative-line-numbers-mode t)
-  (add-hook 'dired-mode-hook 'relative-line-numbers-mode t))
+;;(use-package relative-line-numbers
+;;  :ensure t
+;;  :config
+;;  (relative-line-numbers-mode t)
+;;  (setq relative-line-numbers-motion-function
+;;	'forward-visible-line)
+;;  (add-hook 'prog-mode-hook 'relative-line-numbers-mode t)
+;;  (add-hook 'prog-mode-hook 'line-number-mode t)
+;;  (add-hook 'rexx-mode-hook 'relative-line-numbers-mode t)
+;;  (add-hook 'dired-mode-hook 'relative-line-numbers-mode t))
 ;;  (defun relative-line-numbers-default-format (offset)
 ;;    "The default formatting function.
 ;;Return the absolute value of OFFSET, converted to string."
@@ -688,12 +703,70 @@ this is a pretty hacky solution, I should probably clean it up a bit."
   :defer t)
 
 
-(use-package elpy
-  :ensure t
-  :defer 300
-  :config
-  (elpy-enable))
+;;(use-package elpy
+;;  :ensure t
+;;  :defer 300
+;;  :config
+;;  (setq exec-path (append exec-path (list "~/.local/bin"))
+;;	python-shell-interpreter "python3"
+;;	python-shell-interpreter-args "-i"
+;;	elpy-rpc-python-command "python3")
+;;  (elpy-enable))
 
+;;(use-package bind-map :ensure t)
+;;(use-package smartparens :ensure t)
+;;(use-package evil-lisp-state
+;;  :init
+;;  (use-package bind-map :ensure t)
+;;  (use-package smartparens :ensure t) 
+;;  :ensure t
+;;  :config
+;;  (evil-lisp-state-leader ",l"))
+
+(defvar electrify-return-match
+  "[\]}\)\"]"
+  "If this regexp matches the text after the cursor, do an \"electric\"
+ return.")
+
+(defun electrify-return-if-match (arg)
+  "If the text after the cursor matches `electrify-return-match' then
+ open and indent an empty line between the cursor and the text.  Move the
+ cursor to the new line."
+  (interactive "P")
+  (let ((case-fold-search nil))
+    (if (looking-at electrify-return-match)
+	(save-excursion (newline-and-indent)))
+    (newline arg)
+    (indent-according-to-mode)))
+
+(use-package paredit
+  :ensure t
+  :config
+  (autoload 'enable-paredit-mode "paredit" "Turn on pseudo-structural editing of Lisp code." t)
+  (add-hook 'emacs-lisp-mode-hook       #'enable-paredit-mode)
+  (add-hook 'eval-expression-minibuffer-setup-hook #'enable-paredit-mode)
+  (add-hook 'ielm-mode-hook             #'enable-paredit-mode)
+  (add-hook 'lisp-mode-hook             #'enable-paredit-mode)
+  (add-hook 'lisp-interaction-mode-hook #'enable-paredit-mode)
+  (add-hook 'scheme-mode-hook           #'enable-paredit-mode)
+  (add-hook 'emacs-lisp-mode-hook
+	    (lambda ()
+	      (paredit-mode t)
+
+	      (turn-on-eldoc-mode)
+	      (eldoc-add-command
+	       'paredit-backward-delete
+	       'paredit-close-round)
+	      (local-set-key (kbd "RET") 'electrify-return-if-match)
+	      (eldoc-add-command 'electrify-return-if-match)
+
+	      (show-paren-mode t)))
+  (defun override-slime-repl-bindings-with-paredit ()
+    (define-key slime-repl-mode-map
+      (read-kbd-macro paredit-backward-delete-key) nil))
+  (add-hook 'slime-repl-mode-hook 'override-slime-repl-bindings-with-paredit))
+
+;;check out winner-mode for window layout
 
 (use-package ov
   :ensure t)
@@ -791,6 +864,8 @@ this is a pretty hacky solution, I should probably clean it up a bit."
 
 ;; Diminish extraneous info in the modeline
 (diminish 'abbrev-mode)
+(diminish 'adoc)
+(diminish 'LR)
 (defun sk/diminish-auto-revert ()
   "Diminishes the 'auto-revert-mode' in the mode line."
   (interactive)
@@ -853,3 +928,48 @@ this is a pretty hacky solution, I should probably clean it up a bit."
 
 (put 'narrow-to-region 'disabled nil)
 (setq custom-file "~/.emacs.d/cust-vars.el")
+
+(setq slime-contribs '(slime-fancy))
+(setq slime-lisp-implementations
+      '((sbcl ("/usr/bin/sbcl") :coding-system utf-8-unix)))
+(use-package slime
+  :ensure t
+  :config 
+  (evil-leader/set-key-for-mode 'lisp-mode
+    "m'"  'slime
+    "mcc" 'slime-compile-file
+    "mcC" 'slime-compile-and-load-file
+    "mcl" 'slime-load-file
+    "mcf" 'slime-compile-defun
+    "mcr" 'slime-compile-region
+    "mcn" 'slime-remove-notes
+    "meb" 'slime-eval-buffer
+    "mef" 'slime-eval-defun
+    "meF" 'slime-undefine-function
+    "mee" 'slime-eval-last-expression
+    "mer" 'slime-eval-region
+    "mgb" 'slime-pop-find-definition-stack
+    "mgn" 'slime-next-note
+    "mgN" 'slime-previous-note
+    "mha" 'slime-apropos
+    "mhA" 'slime-apropos-all
+    "mhd" 'slime-disassemble-symbol
+    "mhh" 'slime-describe-symbol
+    "mhH" 'slime-hyperspec-lookup
+    "mhi" 'slime-inspect-definition
+    "mhp" 'slime-apropos-package
+    "mht" 'slime-toggle-trace-fdefinition
+    "mhT" 'slime-untrace-all
+    "mh<" 'slime-who-calls
+    "mh>" 'slime-calls-who
+    "mhr" 'slime-who-references
+    "mhm" 'slime-who-macroexpands
+    "mhs" 'slime-who-specializes
+    "mma" 'slime-macroexpand-all
+    "mmo" 'slime-macroexpand-1
+    "mse" 'slime-eval-last-expression-in-repl
+    "msi" 'slime
+    "msq" 'slime-quit-lisp
+    "mtf" 'slime-toggle-fancy-trace))
+
+(desktop-save-mode 1)
